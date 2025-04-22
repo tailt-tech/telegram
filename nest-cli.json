@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/tel-bot/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/tel-bot/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/tel-bot",
+  "projects": {
+    "ai-service": {
+      "type": "library",
+      "root": "libs/ai-service",
+      "entryFile": "index",
+      "sourceRoot": "libs/ai-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/ai-service/tsconfig.lib.json"
+      }
+    },
+    "shared-utils": {
+      "type": "library",
+      "root": "libs/shared-utils",
+      "entryFile": "index",
+      "sourceRoot": "libs/shared-utils/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/shared-utils/tsconfig.lib.json"
+      }
+    },
+    "tel-bot": {
+      "type": "application",
+      "root": "apps/tel-bot",
+      "entryFile": "main",
+      "sourceRoot": "apps/tel-bot/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/tel-bot/tsconfig.app.json"
+      }
+    },
+    "tel-core": {
+      "type": "library",
+      "root": "libs/tel-core",
+      "entryFile": "index",
+      "sourceRoot": "libs/tel-core/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/tel-core/tsconfig.lib.json"
+      }
+    }
+  }
+}
