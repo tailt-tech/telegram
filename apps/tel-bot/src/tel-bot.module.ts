@@ -4,6 +4,7 @@ import { TelCoreModule } from '@app/tel-core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { TelBotUpdate } from './tel-bot.update';
+import { StorageModule } from '@app/storage';
 
 @Module({
   imports: [
@@ -19,10 +20,12 @@ import { TelBotUpdate } from './tel-bot.update';
         options: {
           telegram: {
             apiRoot: 'https://api.telegram.org',
+            apiMode: 'bot',
           },
         },
       }),
     }),
+    StorageModule,
   ],
   providers: [TelBotService, TelBotUpdate],
   exports: [TelBotService],

@@ -31,6 +31,12 @@
       "@app/shared-utils/*": [
         "libs/shared-utils/src/*"
       ],
+      "@app/storage": [
+        "libs/storage/src"
+      ],
+      "@app/storage/*": [
+        "libs/storage/src/*"
+      ],
       "@app/tel-core": [
         "libs/tel-core/src"
       ],

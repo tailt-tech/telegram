@@ -20,12 +20,19 @@
     "test:e2e": "jest --config ./apps/teleg/test/jest-e2e.json"
   },
   "dependencies": {
+    "@keyv/redis": "^4.3.4",
     "@nestjs/axios": "^4.0.0",
+    "@nestjs/bullmq": "^11.0.2",
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.20",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.20",
     "@nestjs/platform-express": "^11.0.20",
     "axios": "^1.8.4",
+    "bullmq": "^5.49.2",
+    "cache-manager": "^6.4.2",
+    "cache-manager-redis-yet": "^5.1.5",
+    "cacheable": "^1.8.10",
     "dotenv": "^16.5.0",
     "joi": "^17.13.3",
     "nestjs-telegraf": "^2.8.1",
@@ -33,6 +40,7 @@
     "punycode": "^2.3.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "simple-crypto-js": "^3.0.1",
     "telegraf": "^4.16.3"
   },
   "devDependencies": {
@@ -85,6 +93,7 @@
     "moduleNameMapper": {
       "^@app/ai-service(|/.*)$": "<rootDir>/libs/ai-service/src/$1",
       "^@app/shared-utils(|/.*)$": "<rootDir>/libs/shared-utils/src/$1",
+      "^@app/storage(|/.*)$": "<rootDir>/libs/storage/src/$1",
       "^@app/tel-core(|/.*)$": "<rootDir>/libs/tel-core/src/$1"
     }
   },

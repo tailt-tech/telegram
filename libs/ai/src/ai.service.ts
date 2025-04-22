@@ -1,9 +1,4 @@
-import {
-  AIModeType,
-  AIRequest,
-  AIResponse,
-  Role,
-} from './ai.interface';
+import { AIModeType, AIRequest, AIResponse, Role } from './ai.interface';
 import { BaseService } from '@app/shared-utils';
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
