@@ -1,33 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TelBotService } from './tel-bot.service';
 import { TelCoreModule } from '@app/tel-core';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TelegrafModule } from 'nestjs-telegraf';
-import { TelBotUpdate } from './tel-bot.update';
 import { StorageModule } from '@app/storage';
+import { AIModule } from '@app/ai';
 
 @Module({
-  imports: [
-    TelCoreModule,
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    TelegrafModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('TELEGRAM_BOT_TOKEN', ''),
-        options: {
-          telegram: {
-            apiRoot: 'https://api.telegram.org',
-            apiMode: 'bot',
-          },
-        },
-      }),
-    }),
-    StorageModule,
-  ],
-  providers: [TelBotService, TelBotUpdate],
+  imports: [TelCoreModule, AIModule, StorageModule],
+  providers: [TelBotService],
   exports: [TelBotService],
 })
 export class TelBotModule {}

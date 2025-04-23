@@ -1,13 +1,12 @@
 import { Action, Ctx, Help, Start, Update } from 'nestjs-telegraf';
-import { TelCoreService } from '@app/tel-core';
 import { Context } from 'telegraf';
 import { BaseLog } from '@app/shared-utils';
 import { Injectable } from '@nestjs/common';
 
 @Update()
 @Injectable()
-export class TelBotUpdate extends BaseLog {
-  constructor(private readonly telCoreService: TelCoreService) {
+export class TelUpdateService extends BaseLog {
+  constructor() {
     super();
   }
 

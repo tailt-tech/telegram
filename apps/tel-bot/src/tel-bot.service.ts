@@ -3,11 +3,19 @@ import { Ctx, Hears, On, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { Message } from 'telegraf/typings/core/types/typegram';
 import { BaseLog } from '@app/shared-utils';
+import { AIMode, AIService } from '@app/ai';
 
 @Update()
 export class TelBotService extends BaseLog {
-  constructor(private readonly telCoreService: TelCoreService) {
+  constructor(
+    private readonly aiService: AIService,
+    private readonly telCoreService: TelCoreService,
+  ) {
     super();
+  }
+
+  private handleMessage(message: string): Promise<string> {
+    return this.aiService.chat(message, AIMode.gpt4oMini20240718);
   }
 
   @Hears(/^[^\\/].*$/)
@@ -26,7 +34,7 @@ export class TelBotService extends BaseLog {
     try {
       await ctx.reply('You asked: ' + userMessage);
       await ctx.reply('Thinking...');
-      const reply = await this.telCoreService.handleMessage(userMessage);
+      const reply = await this.handleMessage(userMessage);
       await ctx.reply(reply);
     } catch (error) {
       const errorMessage =
