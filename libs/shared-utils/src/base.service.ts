@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { BaseLog } from '@app/shared-utils/base.log';
 import pRetry from 'p-retry';
 import { ResponseBase } from '@app/ai';
+import { StorageService } from '@app/storage';
 
 @Injectable()
 export class BaseService extends BaseLog {
@@ -14,6 +15,7 @@ export class BaseService extends BaseLog {
   constructor(
     protected readonly httpService: HttpService,
     protected readonly configService: ConfigService,
+    protected readonly storageService: StorageService,
   ) {
     super();
     this.apiURL = this.configService.get<string>('AIML_API_URL', '').trim();

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { BaseService } from '@app/shared-utils/base.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
+import { CoreModule } from '@app/shared-utils/core.module';
 
 @Module({
   imports: [
+    CoreModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
@@ -16,10 +17,6 @@ import * as Joi from 'joi';
         AIML_API_URL: Joi.string().uri().required(),
         TELEGRAM_BOT_TOKEN: Joi.string().required(),
       }),
-    }),
-    HttpModule.register({
-      timeout: 15000,
-      maxRedirects: 5,
     }),
   ],
   providers: [
@@ -37,6 +34,6 @@ import * as Joi from 'joi';
       inject: [ConfigService],
     },
   ],
-  exports: [HttpModule, BaseService],
+  exports: [CoreModule, BaseService],
 })
 export class BaseModule {}

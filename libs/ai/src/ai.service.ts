@@ -3,11 +3,16 @@ import { BaseService } from '@app/shared-utils';
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '@app/storage';
 
 @Injectable()
 export class AIService extends BaseService {
-  constructor(httpService: HttpService, configService: ConfigService) {
-    super(httpService, configService);
+  constructor(
+    httpService: HttpService,
+    configService: ConfigService,
+    storageService: StorageService,
+  ) {
+    super(httpService, configService, storageService);
   }
 
   public async chat(message: string, mode: AIModeType): Promise<string> {
