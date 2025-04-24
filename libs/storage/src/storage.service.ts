@@ -1,16 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { REDIS_QUEUE_NAME } from '@app/storage/storage.interface';
-import { Queue } from 'bullmq';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable } from '@nestjs/common';
+import { BaseService } from '@app/storage/base.service';
+import { IDataKey, REDIS_QUEUE_TYPE } from '@app/storage/storage.interface';
 
 @Injectable()
-export class StorageService {
-  constructor(
-    @InjectQueue(REDIS_QUEUE_NAME.ACTIVE)
-    private readonly activeQueue: Queue,
-    @InjectQueue(REDIS_QUEUE_NAME.INACTIVE)
-    private readonly inactiveQueue: Queue,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+export class StorageService extends BaseService {
+  async addKeysToQueue(queueName: REDIS_QUEUE_TYPE, data: IDataKey[]) {
+    for (const item of data) {
+      await this.pushToQueue(queueName, item);
+    }
+  }
 }
