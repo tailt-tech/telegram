@@ -35,7 +35,6 @@ export class TelBotService extends BaseLog {
       return;
     }
     try {
-      await ctx.reply('You asked: ' + userMessage);
       await ctx.reply('Thinking...');
       const reply = await this.handleMessage(userMessage);
       await ctx.reply(reply);

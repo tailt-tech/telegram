@@ -18,6 +18,7 @@ import { TelUpdateService } from '@app/tel-core/tel-update.service';
           telegram: {
             apiRoot: 'https://api.telegram.org',
             apiMode: 'bot',
+            timeout: 10000,
           },
         },
       }),

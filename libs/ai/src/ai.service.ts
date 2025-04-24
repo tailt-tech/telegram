@@ -28,6 +28,7 @@ export class AIService extends BaseService {
         '/chat/completions',
         body,
       );
+      if (response.statusCode == 200) this.logger.log('The content processed');
       if (!response.data) return response.msg;
       const msgs = response.data.choices?.map(
         (choice) => choice.message.content,

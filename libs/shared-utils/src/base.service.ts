@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
@@ -11,10 +11,10 @@ import {
   REDIS_QUEUE_NAME,
   StorageService,
 } from '@app/storage';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class BaseService extends BaseLog {
-  public static readonly KEY_CACHING = 'keyCaching';
   protected apiURL: string;
 
   constructor(
@@ -45,10 +45,10 @@ export class BaseService extends BaseLog {
     await this.storageService.setCaching(KEY_CACHING, apiKey);
   }
 
-  private async blockApiKey(apiKey: string) {
+  private async blockApiKey(apiKey: string, code: number = 403) {
     const apiKeyLock: IDataKey = {
       startTime: Date.now(),
-      codeStatus: 403,
+      codeStatus: code,
       value: apiKey,
     };
     await this.storageService.pushToQueue(
@@ -70,45 +70,23 @@ export class BaseService extends BaseLog {
     try {
       let apiKeyUsing = '';
       const response = await pRetry(
-        async () => {
-          apiKeyUsing = await this.getApiKey();
-          if (!apiKeyUsing) {
-            throw new AbortError('No has key active');
-          }
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKeyUsing}`,
-            ...extraHeaders,
-          };
-          this.logger.debug(
-            `POST ${this.apiURL + url} with headers: ${JSON.stringify(headers)} and body: ${JSON.stringify(body)}`,
-          );
-          const observable = this.httpService.post<T>(this.apiURL + url, body, {
-            headers,
-            timeout: 10000,
-          });
-          const dataResp = await lastValueFrom(observable);
-          if (dataResp.status === 403) {
-            await this.storageService.delCaching(apiKeyUsing);
-            await this.blockApiKey(apiKeyUsing);
-          }
-          if (dataResp.status !== 200 && dataResp.status !== 201) {
-            throw new Error(`HTTP error! status: ${dataResp.status}`, {
-              cause: dataResp.status,
-            });
-          }
-          return dataResp;
-        },
+        this.randomAPIKey<T>(url, body, extraHeaders, (key) => {
+          apiKeyUsing = key;
+        }),
         {
           retries: 5,
           minTimeout: 1000,
           maxTimeout: 5000,
           onFailedAttempt: async (error) => {
+            const status = (error?.cause as number) ?? 500;
             this.logger.error(
               `Attempt ${error.attemptNumber} failed: ${error.message}`,
             );
+            if (status === 403) {
+              await this.storageService.restoreCaching();
+            }
             if (!error.retriesLeft) {
-              await this.blockApiKey(apiKeyUsing);
+              await this.blockApiKey(apiKeyUsing, 422);
               this.logger.warn(`The key ${apiKeyUsing} is blocked`);
             }
           },
@@ -127,5 +105,42 @@ export class BaseService extends BaseLog {
       resp.msg = errorMessage;
     }
     return resp;
+  }
+
+  private randomAPIKey<T>(
+    url: string,
+    body: any,
+    extraHeaders: Record<string, string>,
+    onKeyAssigned?: (key: string) => void,
+  ) {
+    return async () => {
+      const apiKeyUsing = await this.getApiKey();
+      if (!apiKeyUsing) {
+        throw new AbortError('No has key active');
+      }
+      onKeyAssigned?.(apiKeyUsing);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKeyUsing}`,
+        ...extraHeaders,
+      };
+      try {
+        const observable = this.httpService.post<T>(this.apiURL + url, body, {
+          headers,
+          timeout: 10000,
+        });
+        this.logger.debug(`Post data with ${apiKeyUsing}`);
+        return await lastValueFrom(observable);
+      } catch (err: unknown) {
+        const axiosError = err as AxiosError;
+        const status = axiosError.status ?? 500;
+        const message = 'Forbidden';
+        const description = axiosError?.message || 'Unknown error';
+        throw new HttpException(message, status, {
+          cause: status,
+          description,
+        });
+      }
+    };
   }
 }

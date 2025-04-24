@@ -18,9 +18,14 @@ export class BaseService {
     await this.redisCaching.del(key);
   }
 
-  async pushToQueue(queueName: REDIS_QUEUE_TYPE, data: IDataKey) {
+  async pushToQueue(
+    queueName: REDIS_QUEUE_TYPE,
+    data: IDataKey,
+    right: boolean = true,
+  ) {
     const payload = JSON.stringify(data);
-    await this.redisCaching.rpush(queueName, payload);
+    if (right) await this.redisCaching.rpush(queueName, payload);
+    else await this.redisCaching.lpush(queueName, payload);
   }
 
   async popFromQueue<T>(queueName: REDIS_QUEUE_TYPE): Promise<T | null> {
