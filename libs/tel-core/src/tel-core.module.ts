@@ -3,12 +3,13 @@ import { TelCoreService } from './tel-core.service';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
+import { CoreModule } from '@app/shared-utils/core.module';
+import { AIModule } from '@app/ai';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    AIModule,
+    CoreModule,
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

@@ -1,15 +1,12 @@
-import { Action, Ctx, Help, Start, Update } from 'nestjs-telegraf';
-import { Context } from 'telegraf';
+import { Action, Command, Ctx, Help, Start, Update } from 'nestjs-telegraf';
+import { Context, Markup } from 'telegraf';
 import { BaseLog } from '@app/shared-utils';
-import { Injectable } from '@nestjs/common';
+
+const YES_RM_BTN: string = 'CONFIRM YES';
+const NO_RM_BTN: string = 'CONFIRM NO';
 
 @Update()
-@Injectable()
 export class TelUpdateService extends BaseLog {
-  constructor() {
-    super();
-  }
-
   @Start()
   async start(@Ctx() ctx: Context): Promise<void> {
     await ctx.reply(
@@ -31,5 +28,28 @@ export class TelUpdateService extends BaseLog {
   @Action('dislike')
   async dislike(@Ctx() ctx: Context): Promise<void> {
     await ctx.answerCbQuery('Disliked!. Tại sao?. Why?....どうして？');
+  }
+
+  @Command('removeAllKey')
+  async removeAllKey(@Ctx() ctx: Context) {
+    await ctx.reply(
+      'Bạn có chắc chắn muốn xóa tất cả key không?',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('✅ Yes', YES_RM_BTN)],
+        [Markup.button.callback('❌ No', NO_RM_BTN)],
+      ]),
+    );
+  }
+
+  @Action(YES_RM_BTN)
+  async handleConfirmRemoveKey(@Ctx() ctx: Context) {
+    await ctx.answerCbQuery();
+    await ctx.reply('Đã xóa tất cả key thành công!');
+  }
+
+  @Action(NO_RM_BTN)
+  async handleCancelRemoveKey(@Ctx() ctx: Context) {
+    await ctx.answerCbQuery();
+    await ctx.reply('Đã hủy thao tác xoá key.');
   }
 }
