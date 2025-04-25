@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
 import { CoreModule } from '@app/shared-utils/core.module';
 import { AIModule } from '@app/ai';
+import { session } from 'telegraf';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AIModule } from '@app/ai';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         token: configService.get<string>('TELEGRAM_BOT_TOKEN', ''),
+        middlewares: [session()],
         options: {
           telegram: {
             apiRoot: 'https://api.telegram.org',

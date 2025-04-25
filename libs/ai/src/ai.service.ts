@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '@app/storage';
+import { TopicCommand, TYPE_TOPIC } from '@app/tel-core';
 
 @Injectable()
 export class AIService extends BaseService {
@@ -14,20 +15,10 @@ export class AIService extends BaseService {
   ) {
     super(httpService, configService, storageService);
   }
-
-  public async chat(message: string, mode: AIModeType): Promise<string> {
-    if (!message.trim().length) {
-      return 'Please enter a message.';
-    }
-    const body: AIRequest = {
-      model: mode,
-      messages: [{ role: Role.user, content: message }],
-    };
+  private async sendDataAI(url: string, body: AIRequest) {
     try {
-      const response = await this.postExternalData<AIResponse>(
-        '/chat/completions',
-        body,
-      );
+      this.logger.verbose(url, JSON.stringify(body));
+      const response = await this.postExternalData<AIResponse>(url, body);
       if (response.statusCode == 200) this.logger.log('The content processed');
       if (!response.data) return response.msg;
       const msgs = response.data.choices?.map(
@@ -40,5 +31,47 @@ export class AIService extends BaseService {
       this.logger.error(msg);
       return 'Sorry, I am unable to process your request at the moment. Please try again later.';
     }
+  }
+
+  public async chat(message: string, mode: AIModeType): Promise<string> {
+    if (!message.trim().length) {
+      return 'Please enter a message.';
+    }
+    const body: AIRequest = {
+      model: mode,
+      messages: [{ role: Role.user, content: message }],
+    };
+    return await this.sendDataAI('/chat/completions', body);
+  }
+
+  private getDescriptionByTopic(topicName: TYPE_TOPIC) {
+    switch (topicName) {
+      case TopicCommand.ENGLISH:
+      case TopicCommand.JAPANESE:
+        return `Bạn là người rất giỏi ${topicName}. Hãy giải thích theo yêu cầu`;
+      case TopicCommand.CODING:
+        return `Bạn là 1 developer. Hãy optimize và coding theo yêu cầu`;
+      case TopicCommand.DRAW:
+        return `Bạn có thể generate image theo yêu cầu`;
+      default:
+        return 'Bạn là người chuyên gia trong lĩnh vực này. Hãy phân tích theo yêu cầu';
+    }
+  }
+
+  public async askTopic(
+    topicName: TYPE_TOPIC,
+    message: string,
+    mode: AIModeType,
+  ) {
+    if (!message.trim().length) return 'Please enter a message.';
+    const description = this.getDescriptionByTopic(topicName);
+    const body: AIRequest = {
+      model: mode,
+      messages: [
+        { role: Role.system, content: description },
+        { role: Role.user, content: message },
+      ],
+    };
+    return await this.sendDataAI('/chat/completions', body);
   }
 }
