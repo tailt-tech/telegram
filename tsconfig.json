@@ -25,6 +25,12 @@
       "@app/ai/*": [
         "libs/ai/src/*"
       ],
+      "@app/database": [
+        "libs/database/src"
+      ],
+      "@app/database/*": [
+        "libs/database/src/*"
+      ],
       "@app/shared-utils": [
         "libs/shared-utils/src"
       ],
