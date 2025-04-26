@@ -18,7 +18,15 @@ export class AIService extends BaseService {
   private async sendDataAI(url: string, body: AIRequest) {
     try {
       this.logger.verbose(url, JSON.stringify(body));
-      const response = await this.postExternalData<AIResponse>(url, body);
+      const extraHeaders = {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+      };
+      const response = await this.postExternalData<AIResponse>(
+        url,
+        body,
+        extraHeaders,
+      );
       if (response.statusCode == 200) this.logger.log('The content processed');
       if (!response.data) return response.msg;
       const msgs = response.data.choices?.map(

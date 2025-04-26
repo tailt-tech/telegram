@@ -27,6 +27,7 @@
     "@nestjs/platform-express": "^11.0.20",
     "axios": "^1.8.4",
     "dotenv": "^16.5.0",
+    "https-proxy-agent": "^7.0.6",
     "ioredis": "^5.6.1",
     "joi": "^17.13.3",
     "nestjs-telegraf": "^2.8.1",

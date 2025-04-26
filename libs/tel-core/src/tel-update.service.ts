@@ -57,7 +57,6 @@ export class TelUpdateService extends BaseLog {
     const callBack = ctx.callbackQuery;
     if (callBack && 'data' in callBack) {
       const topicName = callBack.data as TYPE_TOPIC;
-      await ctx.answerCbQuery(`Xác nhận ${topicName}`);
       const received = ReplyUser(user, topicName);
       await ctx.reply(received.msg);
       const reply = await this.aiService.askTopic(

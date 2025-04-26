@@ -76,8 +76,9 @@ export class BaseService extends BaseLog {
         {
           retries: 5,
           minTimeout: 1000,
-          maxTimeout: 5000,
+          maxTimeout: 15000,
           onFailedAttempt: async (error) => {
+            console.log(error);
             const status = (error?.cause as number) ?? 500;
             this.logger.error(
               `Attempt ${error.attemptNumber} failed: ${error.message}`,
@@ -92,6 +93,7 @@ export class BaseService extends BaseLog {
           },
         },
       );
+      this.logger.verbose(response);
       resp.statusCode = response.status;
       resp.data = response.data;
     } catch (error) {
@@ -127,11 +129,12 @@ export class BaseService extends BaseLog {
       try {
         const observable = this.httpService.post<T>(this.apiURL + url, body, {
           headers,
-          timeout: 10000,
+          timeout: 20000,
         });
         this.logger.debug(`Post data with ${apiKeyUsing}`);
         return await lastValueFrom(observable);
       } catch (err: unknown) {
+        this.logger.debug(err);
         const axiosError = err as AxiosError;
         const status = axiosError.status ?? 500;
         const message = 'Forbidden';
