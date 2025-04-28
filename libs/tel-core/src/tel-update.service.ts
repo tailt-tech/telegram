@@ -1,12 +1,17 @@
-import { Action, Command, Ctx, Help, Start, Update } from 'nestjs-telegraf';
+import { Action, Command, Ctx, Hears, Help, On, Start, Update } from 'nestjs-telegraf';
 import { Context, Markup } from 'telegraf';
 import { BaseLog } from '@app/shared-utils';
 import {
   BotCommand,
+  CONFIRMATION_MENU, decodeCallbackData,
+  MENU_MENU,
   MENU_REPLY,
   MENU_TOPIC,
+  MenuCommand, regex,
   ReplyUser,
+  ReplyUserKey,
   TopicCommand,
+  TYPE_MENU,
   TYPE_TOPIC,
 } from '@app/tel-core/tel-core.interface';
 import { Message } from 'telegraf/typings/core/types/typegram';
@@ -20,6 +25,7 @@ export class TelUpdateService extends BaseLog {
   constructor(private readonly aiService: AIService) {
     super();
   }
+
   @Start()
   async start(@Ctx() ctx: Context): Promise<void> {
     await ctx.reply(
@@ -43,12 +49,32 @@ export class TelUpdateService extends BaseLog {
 
   @Action(BotCommand.MENU)
   async onMenu(@Ctx() ctx: Context) {
-    await ctx.reply('📋 Menu đang cập nhật');
+    await ctx.reply('📋 Vui lòng chọn:', MENU_MENU);
   }
 
   @Action(BotCommand.TOPIC)
   async onTopic(@Ctx() ctx: Context) {
     await ctx.reply('💬️ Vui lòng chọn chủ đề sau:', MENU_TOPIC);
+  }
+
+  @Action(Object.values(MenuCommand))
+  async onMenuMenu(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const user = ctx.from?.first_name ?? 'Bạn';
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const topicName = callBack.data as TYPE_MENU;
+      const received = ReplyUserKey(user, topicName);
+      await ctx.reply(received.msg, CONFIRMATION_MENU(topicName));
+    }
+  }
+
+  @Action(regex)
+  async onConfirmYes(@Ctx() ctx: Context) {
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const received = decodeCallbackData(callBack.data);
+      await ctx.reply(JSON.stringify(received));
+    }
   }
 
   @Action(Object.values(TopicCommand))

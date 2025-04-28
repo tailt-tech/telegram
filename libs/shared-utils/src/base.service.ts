@@ -12,6 +12,7 @@ import {
   StorageService,
 } from '@app/storage';
 import { AxiosError } from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 @Injectable()
 export class BaseService extends BaseLog {
@@ -74,7 +75,7 @@ export class BaseService extends BaseLog {
           apiKeyUsing = key;
         }),
         {
-          retries: 5,
+          retries: 2,
           minTimeout: 1000,
           maxTimeout: 15000,
           onFailedAttempt: async (error) => {
@@ -126,9 +127,13 @@ export class BaseService extends BaseLog {
         Authorization: `Bearer ${apiKeyUsing}`,
         ...extraHeaders,
       };
+      // Webshare proxy configuration
+      const proxyUrl = 'http://hdxufbzo-rotate:bzufbo1by2cx@p.webshare.io:80';
+      const agent = new HttpsProxyAgent(proxyUrl);
       try {
         const observable = this.httpService.post<T>(this.apiURL + url, body, {
           headers,
+          httpsAgent: agent,
           timeout: 20000,
         });
         this.logger.debug(`Post data with ${apiKeyUsing}`);
