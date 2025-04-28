@@ -173,9 +173,9 @@ interface CallbackData {
   suffix: string;
 }
 
-export const regex = /^(\d{13})_(YES|NO)_(.*)$/i;
+export const regexCallData = /^(\d{13})_(YES|NO)_(.*)$/i;
 export const decodeCallbackData = (data: string): CallbackData | null => {
-  const match = data.match(regex);
+  const match = data.match(regexCallData);
   if (!match) return null;
   const timestamp = parseInt(match[1], 10);
   if (isNaN(timestamp)) return null;

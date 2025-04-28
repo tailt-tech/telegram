@@ -5,6 +5,6 @@ import { BaseModule } from '@app/shared-utils';
 @Module({
   imports: [BaseModule],
   providers: [AIService],
-  exports: [AIService],
+  exports: [BaseModule, AIService],
 })
 export class AIModule {}

@@ -1,16 +1,15 @@
 import { Module } from '@nestjs/common';
-import { TelCoreService } from './tel-core.service';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TelUpdateService } from '@app/tel-core/tel-update.service';
-import { CoreModule } from '@app/shared-utils/core.module';
 import { AIModule } from '@app/ai';
 import { session } from 'telegraf';
+import { TelCoreService } from '@app/tel-core/tel-core.service';
+import { TelUpdateService } from '@app/tel-core/tel-update.service';
+import { BaseModule } from '@app/shared-utils';
 
 @Module({
   imports: [
     AIModule,
-    CoreModule,
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,6 +27,6 @@ import { session } from 'telegraf';
     }),
   ],
   providers: [TelCoreService, TelUpdateService],
-  exports: [TelCoreService, TelUpdateService],
+  exports: [BaseModule, TelCoreService, TelUpdateService],
 })
 export class TelCoreModule {}

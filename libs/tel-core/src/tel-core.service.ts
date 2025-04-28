@@ -1,13 +1,39 @@
-import { Command, Ctx, Hears, InjectBot, On, Update } from 'nestjs-telegraf';
+import {
+  Action,
+  Command,
+  Ctx,
+  Hears,
+  Help,
+  InjectBot,
+  On,
+  Start,
+  Update,
+} from 'nestjs-telegraf';
 import { Context, Telegraf } from 'telegraf';
 import pRetry from 'p-retry';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
 import { BaseLog } from '@app/shared-utils';
-import { AIMode, AIService } from '@app/ai';
 import { Message } from 'telegraf/typings/core/types/typegram';
 import { IDataKey, REDIS_QUEUE_NAME, StorageService } from '@app/storage';
+import {
+  BotCommand,
+  CONFIRMATION_MENU,
+  decodeCallbackData,
+  MENU_MENU,
+  MENU_REPLY,
+  MENU_TOPIC,
+  MenuCommand,
+  regexCallData,
+  ReplyUser,
+  ReplyUserKey,
+  TopicCommand,
+  TYPE_MENU,
+  TYPE_TOPIC,
+} from '@app/tel-core/tel-core.interface';
+import { Injectable } from '@nestjs/common';
 
 @Update()
+@Injectable()
 export class TelCoreService extends BaseLog {
   private userStates = new Map<number, string>();
   private readonly WAITING_KEY = 'WAITING';
@@ -15,7 +41,6 @@ export class TelCoreService extends BaseLog {
   constructor(
     @InjectBot() private readonly botTel: Telegraf,
     private readonly telUpdateService: TelUpdateService,
-    private readonly aiService: AIService,
     private readonly storageService: StorageService,
   ) {
     super();
@@ -37,10 +62,6 @@ export class TelCoreService extends BaseLog {
     });
   }
 
-  private handleMessage(message: string): Promise<string> {
-    return this.aiService.chat(message, AIMode.gpt4oMini20240718);
-  }
-
   @Hears(/^(?!\/|key:).+/i)
   async onMessage(
     @Ctx() ctx: Context & { message: Message.TextMessage },
@@ -56,7 +77,7 @@ export class TelCoreService extends BaseLog {
     }
     try {
       await ctx.reply('Thinking...');
-      const reply = await this.handleMessage(userMessage);
+      const reply = await this.telUpdateService.handleMessage(userMessage);
       await ctx.reply(reply);
     } catch (error) {
       const errorMessage =
@@ -66,13 +87,6 @@ export class TelCoreService extends BaseLog {
         'Sorry, an error occurred while processing your message.',
       );
     }
-  }
-
-  @Command('addKey')
-  onAddKey(@Ctx() ctx: Context & { message: Message.TextMessage }): void {
-    const userId = ctx.message.from.id;
-    this.logger.debug(`Listen add key from ${userId}`);
-    this.userStates.set(userId, this.WAITING_KEY);
   }
 
   @Command('removeKey')
@@ -111,5 +125,99 @@ export class TelCoreService extends BaseLog {
         'Send key with format: abc, bdc,.... If you want to cancel, try send command removeKey',
       );
     }
+  }
+
+  @Start()
+  async start(@Ctx() ctx: Context): Promise<void> {
+    await ctx.reply(
+      `Xin chào ${ctx.from?.username} nhé.Tôi là bot chat. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
+    );
+  }
+
+  @Help()
+  async help(@Ctx() ctx: Context): Promise<void> {
+    await ctx.reply('🤖 Mời bạn chọn:', MENU_REPLY);
+  }
+
+  /**
+   *  MENU OPTIONS WITH ACTIONS
+   * @param ctx
+   */
+  @Action(BotCommand.INFO)
+  async onInfo(@Ctx() ctx: Context) {
+    await ctx.reply('👨‍🏫 Tôi là một người máy đang học hỏi');
+  }
+
+  @Action(BotCommand.MENU)
+  async onMenu(@Ctx() ctx: Context) {
+    await ctx.reply('📋 Vui lòng chọn:', MENU_MENU);
+  }
+
+  @Action(BotCommand.TOPIC)
+  async onTopic(@Ctx() ctx: Context) {
+    await ctx.reply('💬️ Vui lòng chọn chủ đề sau:', MENU_TOPIC);
+  }
+
+  @Action(Object.values(MenuCommand))
+  async onMenuMenu(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const user = ctx.from?.first_name ?? 'Bạn';
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const topicName = callBack.data as TYPE_MENU;
+      const received = ReplyUserKey(user, topicName);
+      await ctx.reply(received.msg, CONFIRMATION_MENU(topicName));
+    }
+  }
+
+  @Action(regexCallData)
+  async onConfirmYes(@Ctx() ctx: Context) {
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const received = decodeCallbackData(callBack.data);
+      await ctx.reply(JSON.stringify(received));
+    }
+  }
+
+  @Action(Object.values(TopicCommand))
+  async onMenuTopic(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const user = ctx.from?.first_name ?? 'Bạn';
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const topicName = callBack.data as TYPE_TOPIC;
+      const received = ReplyUser(user, topicName);
+      await ctx.reply(received.msg);
+      const reply = await this.telUpdateService.handleMessageWithTopic(
+        topicName,
+        received.msg,
+      );
+      await ctx.reply(reply);
+    } else {
+      await ctx.reply(
+        `${user} ơi, Hiện tại tôi đang có vẫn đề chưa thể trả lời được.`,
+      );
+    }
+  }
+
+  @Action('like')
+  async like(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Thanks!');
+  }
+
+  @Action('dislike')
+  async dislike(@Ctx() ctx: Context): Promise<void> {
+    await ctx.answerCbQuery('Disliked!. Tại sao?. Why?....どうして？');
+  }
+
+  @On('text')
+  async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const reply = await this.telUpdateService.handleMessage(ctx.message?.text);
+    await ctx.reply(reply);
+  }
+
+  @Command('addKey')
+  async onAddKey(@Ctx() ctx: Context) {
+    const userId = ctx.message?.from.id;
+    await ctx.reply('Bạn có muốn thêm key?');
+    this.logger.debug(`Listen add key from ${userId}`);
   }
 }
