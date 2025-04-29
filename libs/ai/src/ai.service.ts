@@ -69,16 +69,15 @@ export class AIService extends BaseService {
   }
 
   public async askTopic(
-    topicName: TYPE_TOPIC,
     message: string,
+    systemDescription: string,
     mode: AIModeType,
   ) {
     if (!message.trim().length) return 'Please enter a message.';
-    const description = this.getDescriptionByTopic(topicName);
     const body: AIRequest = {
       model: mode,
       messages: [
-        { role: Role.system, content: description },
+        { role: Role.system, content: systemDescription },
         { role: Role.user, content: message },
       ],
     };

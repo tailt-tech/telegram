@@ -2,7 +2,6 @@ import {
   Action,
   Command,
   Ctx,
-  Hears,
   Help,
   InjectBot,
   On,
@@ -18,12 +17,15 @@ import { IDataKey, REDIS_QUEUE_NAME, StorageService } from '@app/storage';
 import {
   BotCommand,
   CONFIRMATION_MENU,
-  decodeCallbackData, decodeCallbackDataKey,
+  decodeCallbackData,
+  decodeCallbackDataKey,
   MENU_MENU,
   MENU_REPLY,
   MENU_TOPIC,
   MenuCommand,
-  regexCallData, regexCallDataKey,
+  regexCallData,
+  regexCallDataKey,
+  regexQuestion,
   ReplyUser,
   ReplyUserKey,
   TopicCommand,
@@ -35,6 +37,7 @@ import {
 export class TelCoreService extends BaseLog {
   private userStates = new Map<number, string>();
   private readonly WAITING_KEY = 'WAITING';
+  private topicName: TYPE_TOPIC;
 
   constructor(
     @InjectBot() private readonly botTel: Telegraf,
@@ -42,6 +45,39 @@ export class TelCoreService extends BaseLog {
     private readonly storageService: StorageService,
   ) {
     super();
+    this.checkKeys();
+  }
+  async checkKeys() {
+    const keys = await this.getDescription();
+    if (!keys) return false;
+    const apiKeys: IDataKey[] = keys.split(',').map((key) => {
+      const timestame = Date.now();
+      const item: IDataKey = {
+        codeStatus: 200,
+        startTime: timestame,
+        value: key,
+      };
+      return item;
+    });
+    if (!apiKeys.length) return false;
+    await this.storageService.addKeysToQueue(REDIS_QUEUE_NAME.ACTIVE, apiKeys);
+    return true;
+  }
+
+  async getDescription() {
+    const checkInfo = async () => {
+      const botInfo = await this.botTel.telegram.getMyDescription();
+      if (!botInfo) {
+        throw new Error('Failed to get bot info');
+      }
+      return botInfo.description;
+    };
+    return await pRetry(checkInfo, {
+      onFailedAttempt: (error) => {
+        this.logger.error(`Attempt ${error.attemptNumber} failed. Retrying...`);
+      },
+      retries: 2,
+    });
   }
 
   async getBotInfo(): Promise<string> {
@@ -73,70 +109,36 @@ export class TelCoreService extends BaseLog {
     await ctx.reply('🤖 Mời bạn chọn:', MENU_REPLY);
   }
 
-  @Hears(/^(?!\/|key:).+/i)
-  async onMessage(
-    @Ctx() ctx: Context & { message: Message.TextMessage },
-  ): Promise<void> {
-    const userMessage: string = ctx.message.text;
-    this.logger.debug(
-      `Received message: ${userMessage} from ${ctx.from?.username}`,
-    );
-    const chatId = ctx.chat?.id;
-    if (!userMessage || !chatId) {
-      this.logger.error('Invalid message or chat ID');
-      return;
-    }
-    try {
-      await ctx.reply('Thinking...');
-      const reply = await this.telUpdateService.handleMessage(userMessage);
-      await ctx.reply(reply);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error handling message: ${errorMessage}`);
-      await ctx.reply(
-        'Sorry, an error occurred while processing your message.',
-      );
-    }
-  }
-
-  @Command('removeKey')
-  async onRemoveKey(@Ctx() ctx: Context & { message: Message.TextMessage }) {
-    const userId = ctx.message.from.id;
-    this.userStates.delete(userId);
-    await ctx.reply('Bạn đã hủy nhập key');
-  }
-
-  @On('text')
-  async onSaveKey(@Ctx() ctx: Context & { message: Message.TextMessage }) {
-    const text = ctx.message.text;
-    if (text.startsWith('/')) return;
-    const userId = ctx.message.from.id;
-    const state = this.userStates.get(userId);
-    if (state === this.WAITING_KEY) {
-      const keys = ctx.message.text;
-      this.userStates.delete(userId);
-      const keyList: string[] = keys.split(', ').map((keys) => keys.trim());
-      const payload: IDataKey[] = [];
-      keyList.forEach((key: string) => {
-        const itemDateKey: IDataKey = {
-          codeStatus: 200,
-          startTime: Date.now(),
-          value: key,
-        };
-        payload.push(itemDateKey);
-      });
-      await this.storageService.addKeysToQueue(
-        REDIS_QUEUE_NAME.ACTIVE,
-        payload,
-      );
-      await ctx.reply('Key saved is success');
-    } else {
-      await ctx.reply(
-        'Send key with format: abc, bdc,.... If you want to cancel, try send command removeKey',
-      );
-    }
-  }
+  // @On('text')
+  // async onSaveKey(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+  //   const text = ctx.message.text;
+  //   if (text.startsWith('/')) return;
+  //   const userId = ctx.message.from.id;
+  //   const state = this.userStates.get(userId);
+  //   if (state === this.WAITING_KEY) {
+  //     const keys = ctx.message.text;
+  //     this.userStates.delete(userId);
+  //     const keyList: string[] = keys.split(', ').map((keys) => keys.trim());
+  //     const payload: IDataKey[] = [];
+  //     keyList.forEach((key: string) => {
+  //       const itemDateKey: IDataKey = {
+  //         codeStatus: 200,
+  //         startTime: Date.now(),
+  //         value: key,
+  //       };
+  //       payload.push(itemDateKey);
+  //     });
+  //     await this.storageService.addKeysToQueue(
+  //       REDIS_QUEUE_NAME.ACTIVE,
+  //       payload,
+  //     );
+  //     await ctx.reply('Key saved is success');
+  //   } else {
+  //     await ctx.reply(
+  //       'Send key with format: abc, bdc,.... If you want to cancel, try send command removeKey',
+  //     );
+  //   }
+  // }
   /**
    *  MENU OPTIONS WITH ACTIONS
    * @param ctx
@@ -196,22 +198,45 @@ export class TelCoreService extends BaseLog {
 
   @Action(Object.values(TopicCommand))
   async onMenuTopic(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const keyAPI = await this.telUpdateService.getAPIKeyAI();
+    if (!keyAPI) await ctx.reply(`Vui lòng add key AI`);
     const user = ctx.from?.first_name ?? 'Bạn';
     const callBack = ctx.callbackQuery;
     if (callBack && 'data' in callBack) {
       const topicName = callBack.data as TYPE_TOPIC;
       const received = ReplyUser(user, topicName);
       await ctx.reply(received.msg);
-      const reply = await this.telUpdateService.handleMessageWithTopic(
-        topicName,
-        received.msg,
+      await this.storageService.setSysDescriptionCaching({
+        key: topicName,
+        value: received.msg,
+      });
+      await ctx.reply(
+        'Bạn muốn hỏi gì nhỉ. Nếu cần hỏi theo chủ đề thì sau khi chọn bạn sẽ mở đầu bằng qs: 例えば: qs:<???>',
       );
-      await ctx.reply(reply);
+      this.topicName = topicName;
     } else {
       await ctx.reply(
         `${user} ơi, Hiện tại tôi đang có vẫn đề chưa thể trả lời được.`,
       );
     }
+  }
+
+  async onQuestionTopic(
+    @Ctx() ctx: Context & { message: Message.TextMessage },
+  ) {
+    const qs = ctx.message.text.split('🙋️️');
+    const ques = qs[1];
+    const username = ctx.from?.first_name ?? 'Bạn';
+    if (!ques) await ctx.reply(`${username} nói gì vậy`);
+    await ctx.reply('hoi topic');
+    const sysDescription = await this.storageService.getSysDescriptionCaching(
+      this.topicName,
+    );
+    const reply = await this.telUpdateService.handleMessageWithTopic(
+      ques,
+      sysDescription ?? '',
+    );
+    await ctx.reply(reply);
   }
 
   @Action('like')
@@ -226,8 +251,16 @@ export class TelCoreService extends BaseLog {
 
   @On('text')
   async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
-    const reply = await this.telUpdateService.handleMessage(ctx.message?.text);
-    await ctx.reply(reply);
+    const text = ctx.message?.text || '';
+    const emojoi = text.startsWith('🙋️');
+    if (!emojoi) {
+      const reply = await this.telUpdateService.handleMessage(
+        ctx.message?.text,
+      );
+      await ctx.reply(reply);
+    } else {
+      await this.onQuestionTopic(ctx);
+    }
   }
 
   @Command('addKey')

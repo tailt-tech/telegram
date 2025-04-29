@@ -6,6 +6,23 @@ import { IDataKey, REDIS_QUEUE_TYPE } from '@app/storage/storage.interface';
 export class BaseService {
   constructor(@Inject('REDIS_CACHING') private readonly redisCaching: Redis) {}
 
+  async setCachingHash(key: string, hash: { key: string; value: string }) {
+    try {
+      await this.redisCaching.hset(key, hash.key, hash.value);
+      return { success: true, message: `Hash set for key ${key}` };
+    } catch (error) {
+      throw new Error(`Failed to set hash in Redis: ${error}`);
+    }
+  }
+
+  async getCachingHash(key: string, hashKey: string) {
+    try {
+      return await this.redisCaching.hget(key, hashKey);
+    } catch (error) {
+      return null;
+    }
+  }
+
   async getCaching(key: string): Promise<string> {
     return (await this.redisCaching.get(key)) ?? '';
   }

@@ -22,12 +22,16 @@ export class TelUpdateService extends BaseLog {
     return this.aiService.chat(message, AIMode.gpt4oMini20240718);
   }
 
+  public async getAPIKeyAI() {
+    return this.aiService.getApiKey();
+  }
+
   public async handleMessageWithTopic(
-    topicName: TYPE_TOPIC,
     message: string,
+    sysDescription: string,
     model: AIModeType = AIMode.gpt4oMini20240718,
   ) {
-    return await this.aiService.askTopic(topicName, message, model);
+    return await this.aiService.askTopic(message, sysDescription, model);
   }
 
   public async handleSwitchMenu(payload: CallbackData, ctx: Context) {

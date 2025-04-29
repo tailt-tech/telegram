@@ -27,7 +27,7 @@ export class BaseService extends BaseLog {
     this.apiURL = this.configService.get<string>('AIML_API_URL', '').trim();
   }
 
-  private async getApiKey() {
+  public async getApiKey() {
     let apiKey = await this.storageService.getCaching(KEY_CACHING);
     if (!apiKey) {
       const data = await this.storageService.popFromQueue<IDataKey>(
@@ -79,7 +79,6 @@ export class BaseService extends BaseLog {
           minTimeout: 1000,
           maxTimeout: 15000,
           onFailedAttempt: async (error) => {
-            console.log(error);
             const status = (error?.cause as number) ?? 500;
             this.logger.error(
               `Attempt ${error.attemptNumber} failed: ${error.message}`,
@@ -94,7 +93,6 @@ export class BaseService extends BaseLog {
           },
         },
       );
-      this.logger.verbose(response);
       resp.statusCode = response.status;
       resp.data = response.data;
     } catch (error) {

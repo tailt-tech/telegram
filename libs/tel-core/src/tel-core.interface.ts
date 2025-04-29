@@ -145,11 +145,11 @@ export const ReplyUser = (
   switch (topicName) {
     case TopicCommand.JAPANESE:
     case TopicCommand.ENGLISH:
-      text = `${username} muốn học ngôn ngữ ${topicName} nhỉ. Tôi tin sẽ giúp được bạn.`;
+      text = `Bạn chuyên về ${topicName} và hãy giải thichs theo cái bạn chuyên`;
       break;
     case TopicCommand.CODING:
     case TopicCommand.ACCOUNTANT:
-      text = `${username} ơi, Tôi tin rằng với năng lực ${topicName} thì bạn chỉ tham khảo thôi nhé.`;
+      text = `Bạn chuyên về ${topicName} và hãy hướng dẫn chi tiết từng bước.`;
       break;
     case TopicCommand.DRAW:
       text = `${username} có tin tôi vẽ đẹp hơn bạn đấy.`;
@@ -199,6 +199,7 @@ export interface CallbackDataKey {
 
 export const regexCallData = /^(\d{13})_(YES|NO)_(.*)$/i;
 export const regexCallDataKey = /^(\d{13})_(KEY)_(.*)$/i;
+export const regexQuestion = /^(\(🙋️️)(.*)$/i;
 export const decodeCallbackData = (data: string): CallbackData | null => {
   const match = data.match(regexCallData);
   if (!match) return null;
