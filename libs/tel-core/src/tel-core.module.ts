@@ -5,11 +5,12 @@ import { AIModule } from '@app/ai';
 import { session } from 'telegraf';
 import { TelCoreService } from '@app/tel-core/tel-core.service';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
-import { BaseModule } from '@app/shared-utils';
+import { CoreModule } from '@app/shared-utils/core.module';
 
 @Module({
   imports: [
     AIModule,
+    CoreModule,
     TelegrafModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -27,6 +28,6 @@ import { BaseModule } from '@app/shared-utils';
     }),
   ],
   providers: [TelCoreService, TelUpdateService],
-  exports: [BaseModule, TelCoreService, TelUpdateService],
+  exports: [TelCoreService, TelUpdateService],
 })
 export class TelCoreModule {}

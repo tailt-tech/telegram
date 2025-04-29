@@ -111,6 +111,26 @@ export const MENU_TOPIC = {
     ],
   },
 };
+export const MENU_SECOND = (date: number = Date.now()) => ({
+  reply_markup: {
+    inline_keyboard: [
+      [
+        { text: '🔑 Add Key', callback_data: `${date}_KEY_${KeyCommand.Add}` },
+        {
+          text: '🔑 Remove Key',
+          callback_data: `${date}_KEY_${KeyCommand.Remove}`,
+        },
+      ],
+      [
+        {
+          text: '🔑 Restore Key',
+          callback_data: `${date}_KEY_${KeyCommand.Restore}`,
+        },
+        { text: '🔍 Cancel', callback_data: `${BotCommand.MENU}` },
+      ],
+    ],
+  },
+});
 
 export interface IResponse<T> {
   msg: string;
@@ -167,22 +187,36 @@ export const ReplyUserKey = (
   };
 };
 
-interface CallbackData {
+export interface CallbackData {
   timestamp: number;
   choice: 'YES' | 'NO';
-  suffix: string;
+  suffix: TYPE_MENU;
+}
+export interface CallbackDataKey {
+  timestamp: number;
+  suffix: TYPE_KEY;
 }
 
 export const regexCallData = /^(\d{13})_(YES|NO)_(.*)$/i;
+export const regexCallDataKey = /^(\d{13})_(KEY)_(.*)$/i;
 export const decodeCallbackData = (data: string): CallbackData | null => {
   const match = data.match(regexCallData);
   if (!match) return null;
   const timestamp = parseInt(match[1], 10);
   if (isNaN(timestamp)) return null;
-
   return {
     timestamp,
     choice: match[2] as 'YES' | 'NO',
-    suffix: match[3],
+    suffix: match[3] as TYPE_MENU,
+  };
+};
+export const decodeCallbackDataKey = (data: string): CallbackDataKey | null => {
+  const match = data.match(regexCallDataKey);
+  if (!match) return null;
+  const timestamp = parseInt(match[1], 10);
+  if (isNaN(timestamp)) return null;
+  return {
+    timestamp,
+    suffix: match[3] as TYPE_KEY,
   };
 };

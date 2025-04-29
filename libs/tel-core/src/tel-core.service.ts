@@ -18,22 +18,20 @@ import { IDataKey, REDIS_QUEUE_NAME, StorageService } from '@app/storage';
 import {
   BotCommand,
   CONFIRMATION_MENU,
-  decodeCallbackData,
+  decodeCallbackData, decodeCallbackDataKey,
   MENU_MENU,
   MENU_REPLY,
   MENU_TOPIC,
   MenuCommand,
-  regexCallData,
+  regexCallData, regexCallDataKey,
   ReplyUser,
   ReplyUserKey,
   TopicCommand,
   TYPE_MENU,
   TYPE_TOPIC,
 } from '@app/tel-core/tel-core.interface';
-import { Injectable } from '@nestjs/common';
 
 @Update()
-@Injectable()
 export class TelCoreService extends BaseLog {
   private userStates = new Map<number, string>();
   private readonly WAITING_KEY = 'WAITING';
@@ -60,6 +58,19 @@ export class TelCoreService extends BaseLog {
       },
       retries: 3,
     });
+  }
+
+  @Start()
+  async start(@Ctx() ctx: Context): Promise<void> {
+    await ctx.reply(
+      `Xin chào ${ctx.from?.username} nhé.Tôi là bot chat. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
+    );
+  }
+
+  @Help()
+  async help(@Ctx() ctx: Context): Promise<void> {
+    this.logger.debug('Help command received');
+    await ctx.reply('🤖 Mời bạn chọn:', MENU_REPLY);
   }
 
   @Hears(/^(?!\/|key:).+/i)
@@ -126,19 +137,6 @@ export class TelCoreService extends BaseLog {
       );
     }
   }
-
-  @Start()
-  async start(@Ctx() ctx: Context): Promise<void> {
-    await ctx.reply(
-      `Xin chào ${ctx.from?.username} nhé.Tôi là bot chat. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
-    );
-  }
-
-  @Help()
-  async help(@Ctx() ctx: Context): Promise<void> {
-    await ctx.reply('🤖 Mời bạn chọn:', MENU_REPLY);
-  }
-
   /**
    *  MENU OPTIONS WITH ACTIONS
    * @param ctx
@@ -174,7 +172,25 @@ export class TelCoreService extends BaseLog {
     const callBack = ctx.callbackQuery;
     if (callBack && 'data' in callBack) {
       const received = decodeCallbackData(callBack.data);
+      if (!received) {
+        await ctx.reply('Không thể xử lý lệnh này');
+        return;
+      }
       await ctx.reply(JSON.stringify(received));
+      await this.telUpdateService.handleSwitchMenu(received, ctx);
+    }
+  }
+  @Action(regexCallDataKey)
+  async onConfirmYesKey(@Ctx() ctx: Context) {
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const received = decodeCallbackDataKey(callBack.data);
+      if (!received) {
+        await ctx.reply('Không thể xử lý lệnh này');
+        return;
+      }
+      await ctx.reply(JSON.stringify(received));
+      await this.telUpdateService.handleSwitchKey(received, ctx);
     }
   }
 
