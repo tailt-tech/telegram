@@ -145,7 +145,14 @@ export class TelCoreService extends BaseLog {
    */
   @Action(BotCommand.INFO)
   async onInfo(@Ctx() ctx: Context) {
-    await ctx.reply('👨‍🏫 Tôi là một người máy đang học hỏi');
+    await ctx.reply(
+      '👨‍🏫 Tôi là một người máy đang học hỏi.\n' +
+        '👨‍ Key của bạn đã được lưu trữ trong hệ thống',
+    );
+    const keys = (await this.getDescription()) ?? '';
+    if (keys) {
+      await ctx.reply(keys);
+    }
   }
 
   @Action(BotCommand.MENU)
