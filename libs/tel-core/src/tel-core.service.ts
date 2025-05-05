@@ -181,6 +181,11 @@ export class TelCoreService extends BaseLog {
     await ctx.reply('💬️ Vui lòng chọn chủ đề sau:', MENU_TOPIC);
   }
 
+  @Action(BotCommand.MODEL)
+  async onModel(@Ctx() ctx: Context) {
+    await ctx.reply('🤖 Vui lòng chọn model sau:');
+  }
+
   @Action(Object.values(MenuCommand))
   async onMenuMenu(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const user = ctx.from?.first_name ?? 'Bạn';
