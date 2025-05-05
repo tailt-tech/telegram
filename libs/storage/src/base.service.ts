@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
-import { IDataKey, REDIS_QUEUE_TYPE } from '@app/storage/storage.interface';
+import {
+  IDataKey,
+  REDIS_QUEUE_TYPE,
+  ResponseRedis,
+} from '@app/storage/storage.interface';
 
 @Injectable()
 export class BaseService {
@@ -16,11 +20,83 @@ export class BaseService {
   }
 
   async getCachingHash(key: string, hashKey: string) {
+    return this.redisCaching.hget(key, hashKey);
+  }
+
+  async setCachingHashJson(
+    key: string,
+    hash: Record<string, string>,
+  ): Promise<ResponseRedis> {
     try {
-      return await this.redisCaching.hget(key, hashKey);
+      await this.redisCaching.hmset(key, hash);
+      return { success: true, message: `Hash set for key ${key}` };
     } catch (error) {
-      return null;
+      throw new Error(`Failed to set hash in Redis: ${error}`);
     }
+  }
+
+  async getCachingHashJson(key: string): Promise<Record<string, string>> {
+    return this.redisCaching.hgetall(key);
+  }
+
+  /*Redis Json Methods*/
+  async jsonSet(
+    keyRoot: string,
+    path: string,
+    value: Record<string, any>,
+  ): Promise<ResponseRedis> {
+    try {
+      const normalizedPath = path.replace(/^\.\//, '.');
+      const key = `topic_active:${keyRoot}`;
+      if (normalizedPath !== '.') {
+        const exists = await this.redisCaching.exists(key);
+        if (!exists) {
+          // Initialize with an  object at root
+          await this.redisCaching.call('JSON.SET', key, '.', '{}');
+        }
+      }
+      await this.redisCaching.call(
+        'JSON.SET',
+        key,
+        normalizedPath,
+        JSON.stringify(value),
+      );
+      return {
+        message: 'JSON data set successfully',
+        success: true,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        message: 'Cannot set JSON data',
+      };
+    }
+  }
+
+  async jsonGet(keyRoot: string, path: string = ''): Promise<ResponseRedis> {
+    const key = `topic_active:${keyRoot}`;
+    if (!key)
+      return {
+        success: false,
+        message: `Not found key`,
+      };
+    const result = await this.redisCaching.call('JSON.GET', key, path);
+    if (!result)
+      return {
+        success: false,
+        message: `No data found for key ${key}`,
+      };
+    if (typeof result !== 'string')
+      return {
+        success: false,
+        message: `Expected a string value from JSON.SET, got ${typeof result} instead`,
+      };
+    const data = JSON.parse(result) as Record<string, any>;
+    return {
+      success: true,
+      message: '',
+      data,
+    };
   }
 
   async getCaching(key: string): Promise<string> {
@@ -28,7 +104,7 @@ export class BaseService {
   }
 
   async setCaching(key: string, value: string, ttl = 3600 * 24): Promise<void> {
-    await this.redisCaching.set(key, value, 'EX', ttl);
+    await this.redisCaching.set(key, value.trim(), 'EX', ttl);
   }
 
   async delCaching(key: string): Promise<void> {
@@ -48,5 +124,16 @@ export class BaseService {
   async popFromQueue<T>(queueName: REDIS_QUEUE_TYPE): Promise<T | null> {
     const payload = await this.redisCaching.rpop(queueName);
     return payload ? (JSON.parse(payload) as T) : null;
+  }
+
+  async removeAllKeyInQueue(queueName: REDIS_QUEUE_TYPE) {
+    await this.redisCaching.ltrim(queueName, 1, 0);
+  }
+
+  async hasValueInQueue(queueName: REDIS_QUEUE_TYPE) {
+    return (await this.redisCaching.llen(queueName)) > 0;
+  }
+  async getAllKeysInQueue(queueName: REDIS_QUEUE_TYPE) {
+    return this.redisCaching.lrange(queueName, 0, -1);
   }
 }

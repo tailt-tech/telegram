@@ -26,6 +26,7 @@ export enum KeyCommand {
   Add = 'Key Add',
   Remove = 'Key Remove',
   Restore = 'Key Reset',
+  List = 'Key List',
 }
 
 export const CONFIRMATION_MENU = (T: string, date: number = Date.now()) => ({
@@ -115,6 +116,10 @@ export const MENU_SECOND = (date: number = Date.now()) => ({
   reply_markup: {
     inline_keyboard: [
       [
+        {
+          text: '🔑 List Key',
+          callback_data: `${date}_KEY_${KeyCommand.List}`,
+        },
         { text: '🔑 Add Key', callback_data: `${date}_KEY_${KeyCommand.Add}` },
         {
           text: '🔑 Remove Key',
@@ -145,7 +150,7 @@ export const ReplyUser = (
   switch (topicName) {
     case TopicCommand.JAPANESE:
     case TopicCommand.ENGLISH:
-      text = `Bạn chuyên về ${topicName} và hãy giải thichs theo cái bạn chuyên`;
+      text = `Bạn chuyên về ${topicName}. Phân tích nghĩa, ngữ pháp, cấu trúc, cách dùng trong ${topicName}.`;
       break;
     case TopicCommand.CODING:
     case TopicCommand.ACCOUNTANT:

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseService } from '@app/storage/base.service';
 import {
+  ASK_ACTIVE,
+  IDataActive,
   IDataKey,
   KEY_CACHING,
   REDIS_QUEUE_NAME,
@@ -15,20 +17,9 @@ export class StorageService extends BaseService {
       await this.pushToQueue(queueName, item);
     }
   }
-
-  async getCachingOrSave(nameCaching: string = KEY_CACHING) {
-    const key = await this.getCaching(nameCaching);
-    if (!key) return await this.popFromQueue(REDIS_QUEUE_NAME.ACTIVE);
-    return key;
+  async hasKeysActiveList() {
+    return this.hasValueInQueue(REDIS_QUEUE_NAME.ACTIVE);
   }
-
-  async getSysDescriptionCaching(
-    topicName: string,
-    key: string = SYS_DES_CACHING,
-  ) {
-    return this.getCachingHash(key, topicName);
-  }
-
   async setSysDescriptionCaching(
     payload: { key: string; value: string },
     nameCaching = SYS_DES_CACHING,
@@ -44,5 +35,12 @@ export class StorageService extends BaseService {
     };
     if (!key) await this.pushToQueue(REDIS_QUEUE_NAME.ACTIVE, data, false);
     await this.delCaching(nameCaching);
+  }
+
+  async setTopicActive(userId: number, payload: IDataActive) {
+    return this.jsonSet(userId.toString(), ASK_ACTIVE, payload);
+  }
+  async getTopicActive(userId: number) {
+    return await this.jsonGet(userId.toString(), ASK_ACTIVE);
   }
 }

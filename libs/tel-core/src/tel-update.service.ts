@@ -8,7 +8,6 @@ import {
   MENU_SECOND,
   MenuCommand,
   ReplyUserKey,
-  TYPE_TOPIC,
 } from '@app/tel-core/tel-core.interface';
 import { Context } from 'telegraf';
 
@@ -56,10 +55,10 @@ export class TelUpdateService extends BaseLog {
     const { suffix } = payload;
     switch (suffix) {
       case KeyCommand.Add:
-        await this.addKey(ctx);
+        await this.addKey(ctx); /*1*/
         break;
       case KeyCommand.Remove:
-        await this.removeKey(ctx);
+        await this.removeKey(ctx); /*2*/
         break;
       case KeyCommand.Restore:
         await this.restoreKey(ctx);

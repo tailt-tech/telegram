@@ -13,19 +13,25 @@ import pRetry from 'p-retry';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
 import { BaseLog } from '@app/shared-utils';
 import { Message } from 'telegraf/typings/core/types/typegram';
-import { IDataKey, REDIS_QUEUE_NAME, StorageService } from '@app/storage';
+import {
+  IDataActive,
+  IDataKey,
+  REDIS_QUEUE_NAME,
+  StorageService,
+} from '@app/storage';
 import {
   BotCommand,
+  CallbackDataKey,
   CONFIRMATION_MENU,
   decodeCallbackData,
   decodeCallbackDataKey,
+  KeyCommand,
   MENU_MENU,
   MENU_REPLY,
   MENU_TOPIC,
   MenuCommand,
   regexCallData,
   regexCallDataKey,
-  regexQuestion,
   ReplyUser,
   ReplyUserKey,
   TopicCommand,
@@ -37,6 +43,7 @@ import {
 export class TelCoreService extends BaseLog {
   private userStates = new Map<number, string>();
   private readonly WAITING_KEY = 'WAITING';
+  private readonly ICON_QS = '🤚'; // :raise_hand:
   private topicName: TYPE_TOPIC;
 
   constructor(
@@ -45,11 +52,54 @@ export class TelCoreService extends BaseLog {
     private readonly storageService: StorageService,
   ) {
     super();
-    this.checkKeys();
   }
-  async checkKeys() {
-    const keys = await this.getDescription();
+
+  async getKeysActive(): Promise<string> {
+    const storageCaching: string[] =
+      await this.storageService.getAllKeysInQueue(REDIS_QUEUE_NAME.ACTIVE);
+    if (!storageCaching) {
+      return '';
+    }
+    const keysCaching: string[] = [];
+    for (const item of storageCaching) {
+      try {
+        const data: IDataKey = JSON.parse(item) as IDataKey;
+        const value = data.value;
+        keysCaching.push(value);
+      } catch (e) {
+        this.logger.error(`Invalid JSON item in queue: `, item, e);
+      }
+    }
+    return keysCaching.join('\n');
+  }
+  async addAllKeys(keys: string = '') {
     if (!keys) return false;
+    const keysCaching = await this.storageService.hasKeysActiveList();
+    if (!keysCaching) {
+      const apiKeys: IDataKey[] = keys.split(',').map((key) => {
+        const timestame = Date.now();
+        const item: IDataKey = {
+          codeStatus: 200,
+          startTime: timestame,
+          value: key,
+        };
+        return item;
+      });
+      if (!apiKeys.length) return false;
+      await this.storageService.addKeysToQueue(
+        REDIS_QUEUE_NAME.ACTIVE,
+        apiKeys,
+      );
+    }
+    return true;
+  }
+
+  async restoreAllKeys(keys: string = '') {
+    if (!keys) return false;
+    const keysCaching = await this.storageService.hasKeysActiveList();
+    if (keysCaching) {
+      await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
+    }
     const apiKeys: IDataKey[] = keys.split(',').map((key) => {
       const timestame = Date.now();
       const item: IDataKey = {
@@ -109,36 +159,6 @@ export class TelCoreService extends BaseLog {
     await ctx.reply('🤖 Mời bạn chọn:', MENU_REPLY);
   }
 
-  // @On('text')
-  // async onSaveKey(@Ctx() ctx: Context & { message: Message.TextMessage }) {
-  //   const text = ctx.message.text;
-  //   if (text.startsWith('/')) return;
-  //   const userId = ctx.message.from.id;
-  //   const state = this.userStates.get(userId);
-  //   if (state === this.WAITING_KEY) {
-  //     const keys = ctx.message.text;
-  //     this.userStates.delete(userId);
-  //     const keyList: string[] = keys.split(', ').map((keys) => keys.trim());
-  //     const payload: IDataKey[] = [];
-  //     keyList.forEach((key: string) => {
-  //       const itemDateKey: IDataKey = {
-  //         codeStatus: 200,
-  //         startTime: Date.now(),
-  //         value: key,
-  //       };
-  //       payload.push(itemDateKey);
-  //     });
-  //     await this.storageService.addKeysToQueue(
-  //       REDIS_QUEUE_NAME.ACTIVE,
-  //       payload,
-  //     );
-  //     await ctx.reply('Key saved is success');
-  //   } else {
-  //     await ctx.reply(
-  //       'Send key with format: abc, bdc,.... If you want to cancel, try send command removeKey',
-  //     );
-  //   }
-  // }
   /**
    *  MENU OPTIONS WITH ACTIONS
    * @param ctx
@@ -149,10 +169,6 @@ export class TelCoreService extends BaseLog {
       '👨‍🏫 Tôi là một người máy đang học hỏi.\n' +
         '👨‍ Key của bạn đã được lưu trữ trong hệ thống',
     );
-    const keys = (await this.getDescription()) ?? '';
-    if (keys) {
-      await ctx.reply(keys);
-    }
   }
 
   @Action(BotCommand.MENU)
@@ -189,6 +205,7 @@ export class TelCoreService extends BaseLog {
       await this.telUpdateService.handleSwitchMenu(received, ctx);
     }
   }
+
   @Action(regexCallDataKey)
   async onConfirmYesKey(@Ctx() ctx: Context) {
     const callBack = ctx.callbackQuery;
@@ -198,9 +215,41 @@ export class TelCoreService extends BaseLog {
         await ctx.reply('Không thể xử lý lệnh này');
         return;
       }
-      await ctx.reply(JSON.stringify(received));
-      await this.telUpdateService.handleSwitchKey(received, ctx);
+      await this.actionContext(received, ctx);
     }
+  }
+
+  private async actionContext(payload: CallbackDataKey, ctx: Context) {
+    const { suffix } = payload;
+    const keys = await this.getDescription();
+    switch (suffix) {
+      case KeyCommand.Add:
+        await this.addAllKeys(keys);
+        await ctx.reply('Thêm key thành công');
+        break;
+      case KeyCommand.List:
+        await ctx.reply('Danh sách key');
+        await this.showListKeyCaching(ctx);
+        break;
+      case KeyCommand.Remove:
+        await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
+        await ctx.reply('Xóa key thành công');
+        break;
+      case KeyCommand.Restore:
+        await this.restoreAllKeys(keys);
+        await ctx.reply('Khôi phục key thành công');
+        break;
+      default:
+        await ctx.reply('Khong tim thay');
+    }
+  }
+  private async showListKeyCaching(@Ctx() ctx: Context) {
+    const keys = await this.getKeysActive();
+    if (!keys) {
+      await ctx.reply('Không có key nào được lưu trữ');
+      return;
+    }
+    await ctx.reply(keys);
   }
 
   @Action(Object.values(TopicCommand))
@@ -218,9 +267,10 @@ export class TelCoreService extends BaseLog {
         value: received.msg,
       });
       await ctx.reply(
-        'Bạn muốn hỏi gì nhỉ. Nếu cần hỏi theo chủ đề thì sau khi chọn bạn sẽ mở đầu bằng qs: 例えば: qs:<???>',
+        `Bạn muốn hỏi gì nhỉ. Nếu cần hỏi theo chủ đề thì sau khi chọn bạn sẽ mở đầu bằng ${this.ICON_QS} (:raise_hand:)`,
       );
       this.topicName = topicName;
+      await this.setTopicActive(ctx, topicName, received.msg);
     } else {
       await ctx.reply(
         `${user} ơi, Hiện tại tôi đang có vẫn đề chưa thể trả lời được.`,
@@ -231,36 +281,25 @@ export class TelCoreService extends BaseLog {
   async onQuestionTopic(
     @Ctx() ctx: Context & { message: Message.TextMessage },
   ) {
-    const qs = ctx.message.text.split('🙋️️');
+    const qs = ctx.message.text.split(`${this.ICON_QS}`);
     const ques = qs[1];
     const username = ctx.from?.first_name ?? 'Bạn';
     if (!ques) await ctx.reply(`${username} nói gì vậy`);
-    await ctx.reply('hoi topic');
-    const sysDescription = await this.storageService.getSysDescriptionCaching(
-      this.topicName,
-    );
-    const reply = await this.telUpdateService.handleMessageWithTopic(
-      ques,
-      sysDescription ?? '',
-    );
-    await ctx.reply(reply);
-  }
-
-  @Action('like')
-  async like(@Ctx() ctx: Context): Promise<void> {
-    await ctx.answerCbQuery('Thanks!');
-  }
-
-  @Action('dislike')
-  async dislike(@Ctx() ctx: Context): Promise<void> {
-    await ctx.answerCbQuery('Disliked!. Tại sao?. Why?....どうして？');
+    else {
+      const sysDescription = await this.getTopicActiveDescription(ctx);
+      const reply = await this.telUpdateService.handleMessageWithTopic(
+        ques,
+        sysDescription ?? '',
+      );
+      await ctx.reply(reply);
+    }
   }
 
   @On('text')
   async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const text = ctx.message?.text || '';
-    const emojoi = text.startsWith('🙋️');
-    if (!emojoi) {
+    const raiseHand = text.startsWith(`${this.ICON_QS}`);
+    if (!raiseHand) {
       const reply = await this.telUpdateService.handleMessage(
         ctx.message?.text,
       );
@@ -270,10 +309,24 @@ export class TelCoreService extends BaseLog {
     }
   }
 
-  @Command('addKey')
-  async onAddKey(@Ctx() ctx: Context) {
+  private async setTopicActive(
+    @Ctx() ctx: Context,
+    key: string,
+    value: string,
+  ) {
+    const userId = ctx.callbackQuery?.from.id;
+    if (!userId) return false;
+    const payload: IDataActive = { key, value };
+    await this.storageService.setTopicActive(userId, payload);
+  }
+
+  private async getTopicActiveDescription(
+    @Ctx() ctx: Context,
+  ): Promise<string> {
     const userId = ctx.message?.from.id;
-    await ctx.reply('Bạn có muốn thêm key?');
-    this.logger.debug(`Listen add key from ${userId}`);
+    if (!userId) return '';
+    const topicActive = await this.storageService.getTopicActive(userId);
+    if (!topicActive.success) return '';
+    return topicActive?.data?.value ?? '';
   }
 }

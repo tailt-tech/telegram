@@ -39,7 +39,7 @@ export class BaseService extends BaseLog {
       }
       await this.setApiKey(apiKey);
     }
-    return apiKey;
+    return apiKey.trim();
   }
 
   private async setApiKey(apiKey: string) {
