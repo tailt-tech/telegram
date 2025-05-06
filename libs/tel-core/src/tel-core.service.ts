@@ -1,6 +1,5 @@
 import {
   Action,
-  Command,
   Ctx,
   Help,
   InjectBot,
@@ -52,98 +51,6 @@ export class TelCoreService extends BaseLog {
     private readonly storageService: StorageService,
   ) {
     super();
-  }
-
-  async getKeysActive(): Promise<string> {
-    const storageCaching: string[] =
-      await this.storageService.getAllKeysInQueue(REDIS_QUEUE_NAME.ACTIVE);
-    if (!storageCaching) {
-      return '';
-    }
-    const keysCaching: string[] = [];
-    for (const item of storageCaching) {
-      try {
-        const data: IDataKey = JSON.parse(item) as IDataKey;
-        const value = data.value;
-        keysCaching.push(value);
-      } catch (e) {
-        this.logger.error(`Invalid JSON item in queue: `, item, e);
-      }
-    }
-    return keysCaching.join('\n');
-  }
-  async addAllKeys(keys: string = '') {
-    if (!keys) return false;
-    const keysCaching = await this.storageService.hasKeysActiveList();
-    if (!keysCaching) {
-      const apiKeys: IDataKey[] = keys.split(',').map((key) => {
-        const timestame = Date.now();
-        const item: IDataKey = {
-          codeStatus: 200,
-          startTime: timestame,
-          value: key,
-        };
-        return item;
-      });
-      if (!apiKeys.length) return false;
-      await this.storageService.addKeysToQueue(
-        REDIS_QUEUE_NAME.ACTIVE,
-        apiKeys,
-      );
-    }
-    return true;
-  }
-
-  async restoreAllKeys(keys: string = '') {
-    if (!keys) return false;
-    const keysCaching = await this.storageService.hasKeysActiveList();
-    if (keysCaching) {
-      await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
-    }
-    const apiKeys: IDataKey[] = keys.split(',').map((key) => {
-      const timestame = Date.now();
-      const item: IDataKey = {
-        codeStatus: 200,
-        startTime: timestame,
-        value: key,
-      };
-      return item;
-    });
-    if (!apiKeys.length) return false;
-    await this.storageService.addKeysToQueue(REDIS_QUEUE_NAME.ACTIVE, apiKeys);
-    return true;
-  }
-
-  async getDescription() {
-    const checkInfo = async () => {
-      const botInfo = await this.botTel.telegram.getMyDescription();
-      if (!botInfo) {
-        throw new Error('Failed to get bot info');
-      }
-      return botInfo.description;
-    };
-    return await pRetry(checkInfo, {
-      onFailedAttempt: (error) => {
-        this.logger.error(`Attempt ${error.attemptNumber} failed. Retrying...`);
-      },
-      retries: 2,
-    });
-  }
-
-  async getBotInfo(): Promise<string> {
-    const checkInfo = async () => {
-      const botInfo = await this.botTel.telegram.getMe();
-      if (!botInfo) {
-        throw new Error('Failed to get bot info');
-      }
-      return botInfo.username;
-    };
-    return await pRetry(checkInfo, {
-      onFailedAttempt: (error) => {
-        this.logger.error(`Attempt ${error.attemptNumber} failed. Retrying...`);
-      },
-      retries: 3,
-    });
   }
 
   @Start()
@@ -224,39 +131,6 @@ export class TelCoreService extends BaseLog {
     }
   }
 
-  private async actionContext(payload: CallbackDataKey, ctx: Context) {
-    const { suffix } = payload;
-    const keys = await this.getDescription();
-    switch (suffix) {
-      case KeyCommand.Add:
-        await this.addAllKeys(keys);
-        await ctx.reply('Thêm key thành công');
-        break;
-      case KeyCommand.List:
-        await ctx.reply('Danh sách key');
-        await this.showListKeyCaching(ctx);
-        break;
-      case KeyCommand.Remove:
-        await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
-        await ctx.reply('Xóa key thành công');
-        break;
-      case KeyCommand.Restore:
-        await this.restoreAllKeys(keys);
-        await ctx.reply('Khôi phục key thành công');
-        break;
-      default:
-        await ctx.reply('Khong tim thay');
-    }
-  }
-  private async showListKeyCaching(@Ctx() ctx: Context) {
-    const keys = await this.getKeysActive();
-    if (!keys) {
-      await ctx.reply('Không có key nào được lưu trữ');
-      return;
-    }
-    await ctx.reply(keys);
-  }
-
   @Action(Object.values(TopicCommand))
   async onMenuTopic(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const keyAPI = await this.telUpdateService.getAPIKeyAI();
@@ -283,7 +157,7 @@ export class TelCoreService extends BaseLog {
     }
   }
 
-  async onQuestionTopic(
+  private async onQuestionTopic(
     @Ctx() ctx: Context & { message: Message.TextMessage },
   ) {
     const qs = ctx.message.text.split(`${this.ICON_QS}`);
@@ -314,6 +188,12 @@ export class TelCoreService extends BaseLog {
     }
   }
 
+  @On(['photo', 'video', 'document', 'audio'])
+  onFileUpload(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    console.log(ctx);
+  }
+
+  /*Function Process*/
   private async setTopicActive(
     @Ctx() ctx: Context,
     key: string,
@@ -333,5 +213,132 @@ export class TelCoreService extends BaseLog {
     const topicActive = await this.storageService.getTopicActive(userId);
     if (!topicActive.success) return '';
     return topicActive?.data?.value ?? '';
+  }
+
+  private async getKeysActive(): Promise<string> {
+    const storageCaching: string[] =
+      await this.storageService.getAllKeysInQueue(REDIS_QUEUE_NAME.ACTIVE);
+    if (!storageCaching) {
+      return '';
+    }
+    const keysCaching: string[] = [];
+    for (const item of storageCaching) {
+      try {
+        const data: IDataKey = JSON.parse(item) as IDataKey;
+        const value = data.value;
+        keysCaching.push(value);
+      } catch (e) {
+        this.logger.error(`Invalid JSON item in queue: `, item, e);
+      }
+    }
+    return keysCaching.join('\n');
+  }
+
+  private async addAllKeys(keys: string = '') {
+    if (!keys) return false;
+    const keysCaching = await this.storageService.hasKeysActiveList();
+    if (!keysCaching) {
+      const apiKeys: IDataKey[] = keys.split(',').map((key) => {
+        const timestame = Date.now();
+        const item: IDataKey = {
+          codeStatus: 200,
+          startTime: timestame,
+          value: key,
+        };
+        return item;
+      });
+      if (!apiKeys.length) return false;
+      await this.storageService.addKeysToQueue(
+        REDIS_QUEUE_NAME.ACTIVE,
+        apiKeys,
+      );
+    }
+    return true;
+  }
+
+  private async restoreAllKeys(keys: string = '') {
+    if (!keys) return false;
+    const keysCaching = await this.storageService.hasKeysActiveList();
+    if (keysCaching) {
+      await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
+    }
+    const apiKeys: IDataKey[] = keys.split(',').map((key) => {
+      const timestame = Date.now();
+      const item: IDataKey = {
+        codeStatus: 200,
+        startTime: timestame,
+        value: key,
+      };
+      return item;
+    });
+    if (!apiKeys.length) return false;
+    await this.storageService.addKeysToQueue(REDIS_QUEUE_NAME.ACTIVE, apiKeys);
+    return true;
+  }
+
+  private async getDescription() {
+    const checkInfo = async () => {
+      const botInfo = await this.botTel.telegram.getMyDescription();
+      if (!botInfo) {
+        throw new Error('Failed to get bot info');
+      }
+      return botInfo.description;
+    };
+    return await pRetry(checkInfo, {
+      onFailedAttempt: (error) => {
+        this.logger.error(`Attempt ${error.attemptNumber} failed. Retrying...`);
+      },
+      retries: 2,
+    });
+  }
+
+  async getBotInfo(): Promise<string> {
+    const checkInfo = async () => {
+      const botInfo = await this.botTel.telegram.getMe();
+      if (!botInfo) {
+        throw new Error('Failed to get bot info');
+      }
+      return botInfo.username;
+    };
+    return await pRetry(checkInfo, {
+      onFailedAttempt: (error) => {
+        this.logger.error(`Attempt ${error.attemptNumber} failed. Retrying...`);
+      },
+      retries: 3,
+    });
+  }
+
+  private async actionContext(payload: CallbackDataKey, ctx: Context) {
+    const { suffix } = payload;
+    const keys = await this.getDescription();
+    switch (suffix) {
+      case KeyCommand.Add:
+        await this.addAllKeys(keys);
+        await ctx.reply('Thêm key thành công');
+        break;
+      case KeyCommand.List:
+        await ctx.reply('Danh sách key');
+        await this.showListKeyCaching(ctx);
+        break;
+      case KeyCommand.Remove:
+        await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
+        await ctx.reply('Xóa key thành công');
+        break;
+      case KeyCommand.Restore:
+        await this.restoreAllKeys(keys);
+        await ctx.reply('Khôi phục key thành công');
+        break;
+      default:
+        await ctx.reply('Khong tim thay');
+    }
+  }
+
+  private async showListKeyCaching(@Ctx() ctx: Context) {
+    const keys = await this.getKeysActive();
+    if (!keys) {
+      await ctx.reply('Không có key nào được lưu trữ');
+      return;
+    }
+    await ctx.reply(keys);
   }
 }

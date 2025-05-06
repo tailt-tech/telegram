@@ -29,7 +29,7 @@ $ pnpm run start
 # watch mode
 $ pnpm run start:dev
 
-# production mode
+# .env.production mode
 $ pnpm run start:prod
 ```
 
