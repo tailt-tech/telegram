@@ -13,6 +13,7 @@ import {
 } from '@app/storage';
 import { AxiosError } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { ProxyService } from '@app/shared-utils/proxy.service';
 
 @Injectable()
 export class BaseService extends BaseLog {
@@ -22,6 +23,7 @@ export class BaseService extends BaseLog {
     protected readonly httpService: HttpService,
     protected readonly configService: ConfigService,
     protected readonly storageService: StorageService,
+    protected readonly proxyService: ProxyService,
   ) {
     super();
     this.apiURL = this.configService.get<string>('AIML_API_URL', '').trim();
@@ -126,7 +128,7 @@ export class BaseService extends BaseLog {
         ...extraHeaders,
       };
       // Webshare proxy configuration
-      const proxyUrl = 'http://hdxufbzo-rotate:bzufbo1by2cx@p.webshare.io:80';
+      const proxyUrl = this.proxyService.getProxyAgentString();
       const agent = new HttpsProxyAgent(proxyUrl);
       try {
         const observable = this.httpService.post<T>(this.apiURL + url, body, {

@@ -1,5 +1,5 @@
 import { AIModeType, AIRequest, AIResponse, Role } from './ai.interface';
-import { BaseService } from '@app/shared-utils';
+import { BaseService, ProxyService } from '@app/shared-utils';
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -12,8 +12,9 @@ export class AIService extends BaseService {
     httpService: HttpService,
     configService: ConfigService,
     storageService: StorageService,
+    proxyService: ProxyService,
   ) {
-    super(httpService, configService, storageService);
+    super(httpService, configService, storageService, proxyService);
   }
   private async sendDataAI(url: string, body: AIRequest) {
     try {
