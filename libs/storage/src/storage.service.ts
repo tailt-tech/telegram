@@ -8,7 +8,9 @@ import {
   REDIS_QUEUE_NAME,
   REDIS_QUEUE_TYPE,
   SYS_DES_CACHING,
+  USER_AGENT,
 } from '@app/storage/storage.interface';
+import { IUserTelegram } from '@app/tel-core';
 
 @Injectable()
 export class StorageService extends BaseService {
@@ -17,15 +19,18 @@ export class StorageService extends BaseService {
       await this.pushToQueue(queueName, item);
     }
   }
+
   async hasKeysActiveList() {
     return this.hasValueInQueue(REDIS_QUEUE_NAME.ACTIVE);
   }
+
   async setSysDescriptionCaching(
     payload: { key: string; value: string },
     nameCaching = SYS_DES_CACHING,
   ) {
     return this.setCachingHash(nameCaching, payload);
   }
+
   async restoreCaching(nameCaching: string = KEY_CACHING) {
     const key = await this.getCaching(nameCaching);
     const data: IDataKey = {
@@ -40,7 +45,21 @@ export class StorageService extends BaseService {
   async setTopicActive(userId: number, payload: IDataActive) {
     return this.jsonSet(userId.toString(), ASK_ACTIVE, payload);
   }
+
   async getTopicActive(userId: number) {
     return await this.jsonGet(userId.toString(), ASK_ACTIVE);
+  }
+
+  async getUserAgent(user: IUserTelegram): Promise<string> {
+    const result = await this.jsonGet(user.id.toString(), USER_AGENT);
+    if (result?.success) {
+      return result.data?.userAgent.toString() ?? '';
+    } else {
+      return '';
+    }
+  }
+
+  async setUserAgent(user: IUserTelegram, userAgent: string) {
+    return this.jsonSet(user.id.toString(), USER_AGENT, { userAgent });
   }
 }

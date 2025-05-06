@@ -3,11 +3,10 @@ import { AIMode, AIModeType, AIService } from '@app/ai';
 import { Injectable } from '@nestjs/common';
 import {
   CallbackData,
-  CallbackDataKey,
-  KeyCommand,
   MENU_SECOND,
   MenuCommand,
   ReplyUserKey,
+  USER_AGENT,
 } from '@app/tel-core/tel-core.interface';
 import { Context } from 'telegraf';
 
@@ -17,8 +16,8 @@ export class TelUpdateService extends BaseLog {
     super();
   }
 
-  public handleMessage(message: string): Promise<string> {
-    return this.aiService.chat(message, AIMode.gpt4oMini20240718);
+  public handleMessage(message: string, userAgent: string): Promise<string> {
+    return this.aiService.chat(message, AIMode.gpt4oMini20240718, userAgent);
   }
 
   public async getAPIKeyAI() {
@@ -28,11 +27,16 @@ export class TelUpdateService extends BaseLog {
   public async handleMessageWithTopic(
     message: string,
     sysDescription: string,
+    userAgent: string,
     model: AIModeType = AIMode.gpt4oMini20240718,
   ) {
-    return await this.aiService.askTopic(message, sysDescription, model);
+    return await this.aiService.askTopic(
+      message,
+      sysDescription,
+      model,
+      userAgent,
+    );
   }
-
   public async handleSwitchMenu(payload: CallbackData, ctx: Context) {
     const { timestamp, choice, suffix } = payload;
     const response = ReplyUserKey('Bạn', suffix);
@@ -46,34 +50,12 @@ export class TelUpdateService extends BaseLog {
         this.logger.debug(MENU_SECOND(timestamp).reply_markup.inline_keyboard);
         await ctx.reply('Xin moi chon chuc nang', MENU_SECOND(timestamp));
         break;
+      case MenuCommand.CACHING:
+        await ctx.reply('Xin moi chon chuc nang', USER_AGENT(timestamp));
+        break;
       default:
         await ctx.reply('Chưa hỗ trợ');
         break;
     }
-  }
-  public async handleSwitchKey(payload: CallbackDataKey, ctx: Context) {
-    const { suffix } = payload;
-    switch (suffix) {
-      case KeyCommand.Add:
-        await this.addKey(ctx); /*1*/
-        break;
-      case KeyCommand.Remove:
-        await this.removeKey(ctx); /*2*/
-        break;
-      case KeyCommand.Restore:
-        await this.restoreKey(ctx);
-        break;
-      default:
-        await ctx.reply('Khong tim thay');
-    }
-  }
-  private async addKey(ctx: Context) {
-    await ctx.reply('Nhap key');
-  }
-  private async removeKey(ctx: Context) {
-    await ctx.reply('Remove key');
-  }
-  private async restoreKey(ctx: Context) {
-    await ctx.reply('Restore key');
   }
 }

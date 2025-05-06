@@ -16,12 +16,12 @@ export class AIService extends BaseService {
   ) {
     super(httpService, configService, storageService, proxyService);
   }
-  private async sendDataAI(url: string, body: AIRequest) {
+
+  private async sendDataAI(url: string, body: AIRequest, userAgent: string) {
     try {
       this.logger.verbose(url, JSON.stringify(body));
       const extraHeaders = {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+        'User-Agent': userAgent,
         DNT: '1',
         'Accept-Language': 'en-US,en;q=0.9',
       };
@@ -44,7 +44,11 @@ export class AIService extends BaseService {
     }
   }
 
-  public async chat(message: string, mode: AIModeType): Promise<string> {
+  public async chat(
+    message: string,
+    mode: AIModeType,
+    userAgent: string,
+  ): Promise<string> {
     if (!message.trim().length) {
       return 'Please enter a message.';
     }
@@ -52,7 +56,7 @@ export class AIService extends BaseService {
       model: mode,
       messages: [{ role: Role.user, content: message }],
     };
-    return await this.sendDataAI('/chat/completions', body);
+    return await this.sendDataAI('/chat/completions', body, userAgent);
   }
 
   private getDescriptionByTopic(topicName: TYPE_TOPIC) {
@@ -73,6 +77,7 @@ export class AIService extends BaseService {
     message: string,
     systemDescription: string,
     mode: AIModeType,
+    userAgent: string,
   ) {
     if (!message.trim().length) return 'Please enter a message.';
     const body: AIRequest = {
@@ -82,6 +87,6 @@ export class AIService extends BaseService {
         { role: Role.user, content: message },
       ],
     };
-    return await this.sendDataAI('/chat/completions', body);
+    return await this.sendDataAI('/chat/completions', body, userAgent);
   }
 }

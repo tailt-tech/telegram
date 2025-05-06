@@ -58,6 +58,9 @@ importers:
       punycode:
         specifier: ^2.3.1
         version: 2.3.1
+      rand-user-agent:
+        specifier: ^2.0.84
+        version: 2.0.84
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -2971,6 +2974,10 @@ packages:
   quick-lru@5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
+
+  rand-user-agent@2.0.84:
+    resolution: {integrity: sha512-y5SAVxFv1qIOrnEyprG3sasPKDvBILVPUgo6jimnLvYmgLcdIKKikWproVUOZ82wRm31OJFXn6nyUcifHbl+gQ==}
+    engines: {node: '>=14.16'}
 
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
@@ -6808,6 +6815,8 @@ snapshots:
   queue-microtask@1.2.3: {}
 
   quick-lru@5.1.1: {}
+
+  rand-user-agent@2.0.84: {}
 
   randombytes@2.1.0:
     dependencies:

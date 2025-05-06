@@ -12,6 +12,7 @@ import pRetry from 'p-retry';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
 import { BaseLog } from '@app/shared-utils';
 import { Message } from 'telegraf/typings/core/types/typegram';
+import randUserAgent from 'rand-user-agent';
 import {
   IDataActive,
   IDataKey,
@@ -19,17 +20,22 @@ import {
   StorageService,
 } from '@app/storage';
 import {
+  ActionKeyCommand,
   BotCommand,
   CallbackDataKey,
   CONFIRMATION_MENU,
+  decodeCallback,
   decodeCallbackData,
   decodeCallbackDataKey,
+  ICallbackData,
+  IUserTelegram,
   KeyCommand,
   MENU_MENU,
   MENU_REPLY,
   MENU_TOPIC,
   MenuCommand,
   regexCallData,
+  regexCallDataAgent,
   regexCallDataKey,
   ReplyUser,
   ReplyUserKey,
@@ -131,6 +137,25 @@ export class TelCoreService extends BaseLog {
     }
   }
 
+  @Action(regexCallDataAgent)
+  async onConfirmYesAgent(@Ctx() ctx: Context) {
+    const userChat: IUserTelegram = {
+      first_name: ctx.from?.first_name ?? '',
+      id: ctx.from?.id ?? 0,
+      username: ctx.from?.username ?? '',
+    };
+    const callBack = ctx.callbackQuery;
+    if (callBack && 'data' in callBack) {
+      const received = decodeCallback(callBack.data, userChat);
+      if (!received) {
+        await ctx.reply('Không thể xử lý lệnh này');
+        return;
+      }
+      const msg = await this.processUserAgent(received);
+      await ctx.reply(msg);
+    }
+  }
+
   @Action(Object.values(TopicCommand))
   async onMenuTopic(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const keyAPI = await this.telUpdateService.getAPIKeyAI();
@@ -159,6 +184,7 @@ export class TelCoreService extends BaseLog {
 
   private async onQuestionTopic(
     @Ctx() ctx: Context & { message: Message.TextMessage },
+    userAgent: string,
   ) {
     const qs = ctx.message.text.split(`${this.ICON_QS}`);
     const ques = qs[1];
@@ -169,6 +195,7 @@ export class TelCoreService extends BaseLog {
       const reply = await this.telUpdateService.handleMessageWithTopic(
         ques,
         sysDescription ?? '',
+        userAgent,
       );
       await ctx.reply(reply);
     }
@@ -178,13 +205,26 @@ export class TelCoreService extends BaseLog {
   async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const text = ctx.message?.text || '';
     const raiseHand = text.startsWith(`${this.ICON_QS}`);
-    if (!raiseHand) {
-      const reply = await this.telUpdateService.handleMessage(
-        ctx.message?.text,
+    const user: IUserTelegram = {
+      first_name: ctx.from?.first_name ?? '',
+      id: ctx.from?.id ?? 0,
+      username: ctx.from?.username ?? '',
+    };
+    const userAgent = await this.storageService.getUserAgent(user);
+    if (!userAgent)
+      await ctx.reply(
+        `Bạn chưa có user agent. Vui lòng chọn user agent để bắt đầu hỏi đáp.`,
       );
-      await ctx.reply(reply);
-    } else {
-      await this.onQuestionTopic(ctx);
+    else {
+      if (!raiseHand) {
+        const reply = await this.telUpdateService.handleMessage(
+          ctx.message?.text,
+          userAgent,
+        );
+        await ctx.reply(reply);
+      } else {
+        await this.onQuestionTopic(ctx, userAgent);
+      }
     }
   }
 
@@ -340,5 +380,25 @@ export class TelCoreService extends BaseLog {
       return;
     }
     await ctx.reply(keys);
+  }
+
+  private async processUserAgent(payload: ICallbackData) {
+    const { user, suffix, action } = payload;
+    switch (action) {
+      case ActionKeyCommand.Add:
+        await this.updateUserAgent(user);
+        break;
+      case ActionKeyCommand.Remove:
+        // await this.removeUserAgent(user, timestamp);
+        break;
+      default:
+        break;
+    }
+    return `Đã ${action} ${suffix} cho ${user.username}`;
+  }
+
+  private async updateUserAgent(user: IUserTelegram) {
+    const userAgent = randUserAgent('desktop', 'chrome', 'linux');
+    await this.storageService.setUserAgent(user, userAgent);
   }
 }

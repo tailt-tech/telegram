@@ -29,6 +29,11 @@ export enum KeyCommand {
   List = 'Key List',
 }
 
+export enum ActionKeyCommand {
+  Add = 'Add',
+  Remove = 'Remove',
+}
+
 export const CONFIRMATION_MENU = (T: string, date: number = Date.now()) => ({
   reply_markup: {
     inline_keyboard: [
@@ -43,6 +48,8 @@ export const CONFIRMATION_MENU = (T: string, date: number = Date.now()) => ({
 export type TYPE_MENU = (typeof MenuCommand)[keyof typeof MenuCommand];
 export type TYPE_KEY = (typeof KeyCommand)[keyof typeof KeyCommand];
 export type TYPE_TOPIC = (typeof TopicCommand)[keyof typeof TopicCommand];
+export type TYPE_ACTION_KEY =
+  (typeof ActionKeyCommand)[keyof typeof ActionKeyCommand];
 
 export const MENU_REPLY = {
   reply_markup: {
@@ -137,6 +144,24 @@ export const MENU_SECOND = (date: number = Date.now()) => ({
   },
 });
 
+export const USER_AGENT = (date: number = Date.now()) => ({
+  reply_markup: {
+    inline_keyboard: [
+      [
+        {
+          text: '👤 Add User Agent',
+          callback_data: `${date}_Agent_${ActionKeyCommand.Add}`,
+        },
+        {
+          text: '👤 Remove User Agent',
+          callback_data: `${date}_Agent_${ActionKeyCommand.Remove}`,
+        },
+      ],
+      [{ text: '🔍 Cancel', callback_data: `${BotCommand.MENU}` }],
+    ],
+  },
+});
+
 export interface IResponse<T> {
   msg: string;
   cmd: T;
@@ -197,13 +222,26 @@ export interface CallbackData {
   choice: 'YES' | 'NO';
   suffix: TYPE_MENU;
 }
+export interface IUserTelegram {
+  id: number;
+  username: string;
+  first_name: string;
+}
 export interface CallbackDataKey {
   timestamp: number;
   suffix: TYPE_KEY;
 }
+export interface ICallbackData {
+  timestamp: number;
+  user: IUserTelegram;
+  suffix: TYPE_CACHING;
+  action: TYPE_ACTION_KEY;
+}
 
+type TYPE_CACHING = 'Agent' | 'Key' | 'Model';
 export const regexCallData = /^(\d{13})_(YES|NO)_(.*)$/i;
 export const regexCallDataKey = /^(\d{13})_(KEY)_(.*)$/i;
+export const regexCallDataAgent = /^(\d{13})_(Agent)_(.*)$/i;
 export const regexQuestion = /^(\(🙋️️)(.*)$/i;
 export const decodeCallbackData = (data: string): CallbackData | null => {
   const match = data.match(regexCallData);
@@ -224,5 +262,21 @@ export const decodeCallbackDataKey = (data: string): CallbackDataKey | null => {
   return {
     timestamp,
     suffix: match[3] as TYPE_KEY,
+  };
+};
+
+export const decodeCallback = (
+  data: string,
+  user: IUserTelegram,
+): ICallbackData | null => {
+  const match = data.match(regexCallDataAgent);
+  if (!match) return null;
+  const timestamp = parseInt(match[1], 10);
+  if (isNaN(timestamp)) return null;
+  return {
+    timestamp,
+    user,
+    suffix: match[2] as TYPE_CACHING,
+    action: match[3] as TYPE_ACTION_KEY,
   };
 };
