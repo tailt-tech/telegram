@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseService } from '@app/storage/base.service';
 import {
+  AIML_KEY,
   ASK_ACTIVE,
   IDataActive,
   IDataKey,
@@ -61,5 +62,34 @@ export class StorageService extends BaseService {
 
   async setUserAgent(user: IUserTelegram, userAgent: string) {
     return this.jsonSet(user.id.toString(), USER_AGENT, { userAgent });
+  }
+
+  async setKeyAIML(user: IUserTelegram, key: string) {
+    return this.jsonSet(user.id.toString(), AIML_KEY, key);
+  }
+  async getKeyAIML(user: IUserTelegram) {
+    const result = await this.jsonGet(user.id.toString(), AIML_KEY);
+    if (result?.success) {
+      return result.data?.aimlKey.toString() ?? '';
+    } else {
+      return '';
+    }
+  }
+
+  async updateAIMLKey(
+    user: IUserTelegram,
+    key: string,
+    force: boolean = false,
+  ) {
+    if (force) {
+      await this.setKeyAIML(user, key);
+      return true;
+    }
+    const keyAIML = await this.getKeyAIML(user);
+    if (!keyAIML) {
+      await this.setKeyAIML(user, key);
+      return true;
+    }
+    return false;
   }
 }

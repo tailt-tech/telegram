@@ -14,6 +14,7 @@ import {
 import { AxiosError } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { ProxyService } from '@app/shared-utils/proxy.service';
+import { IUserTelegram } from '@app/tel-core';
 
 @Injectable()
 export class BaseService extends BaseLog {

@@ -7,6 +7,7 @@ export const KEY_CACHING = 'keyCaching';
 export const SYS_DES_CACHING = '';
 export const ASK_ACTIVE = 'askActive';
 export const USER_AGENT = 'userAgent';
+export const AIML_KEY = 'aimlKey';
 export type REDIS_QUEUE_TYPE =
   (typeof REDIS_QUEUE_NAME)[keyof typeof REDIS_QUEUE_NAME];
 

@@ -226,6 +226,13 @@ export interface IUserTelegram {
   id: number;
   username: string;
   first_name: string;
+  last_name?: string;
+}
+export interface IBotTelegram {
+  id: number;
+  username: string;
+  first_name?: string;
+  last_name?: string;
 }
 export interface CallbackDataKey {
   timestamp: number;

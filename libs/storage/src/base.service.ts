@@ -8,7 +8,8 @@ import {
 
 @Injectable()
 export class BaseService {
-  constructor(@Inject('REDIS_CACHING') private readonly redisCaching: Redis) {}
+  constructor(@Inject('REDIS_CACHING') private readonly redisCaching: Redis) {
+  }
 
   async setCachingHash(key: string, hash: { key: string; value: string }) {
     try {
@@ -43,7 +44,7 @@ export class BaseService {
   async jsonSet(
     keyRoot: string,
     path: string,
-    value: Record<string, any>,
+    value: Record<string, any> | string,
   ): Promise<ResponseRedis> {
     try {
       const normalizedPath = path.replace(/^\.\//, '.');
@@ -80,23 +81,30 @@ export class BaseService {
         success: false,
         message: `Not found key`,
       };
-    const result = await this.redisCaching.call('JSON.GET', key, path);
-    if (!result)
+    try {
+      const result = await this.redisCaching.call('JSON.GET', key, path);
+      if (!result)
+        return {
+          success: false,
+          message: `No data found for key ${key}`,
+        };
+      if (typeof result !== 'string')
+        return {
+          success: false,
+          message: `Expected a string value from JSON.SET, got ${typeof result} instead`,
+        };
+      const data = JSON.parse(result) as Record<string, any>;
+      return {
+        success: true,
+        message: '',
+        data,
+      };
+    } catch (e) {
       return {
         success: false,
-        message: `No data found for key ${key}`,
+        message: `Failed to get JSON data: ${e}`,
       };
-    if (typeof result !== 'string')
-      return {
-        success: false,
-        message: `Expected a string value from JSON.SET, got ${typeof result} instead`,
-      };
-    const data = JSON.parse(result) as Record<string, any>;
-    return {
-      success: true,
-      message: '',
-      data,
-    };
+    }
   }
 
   async getCaching(key: string): Promise<string> {
@@ -133,6 +141,7 @@ export class BaseService {
   async hasValueInQueue(queueName: REDIS_QUEUE_TYPE) {
     return (await this.redisCaching.llen(queueName)) > 0;
   }
+
   async getAllKeysInQueue(queueName: REDIS_QUEUE_TYPE) {
     return this.redisCaching.lrange(queueName, 0, -1);
   }

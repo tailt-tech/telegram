@@ -27,6 +27,7 @@ import {
   decodeCallback,
   decodeCallbackData,
   decodeCallbackDataKey,
+  IBotTelegram,
   ICallbackData,
   IUserTelegram,
   KeyCommand,
@@ -60,10 +61,18 @@ export class TelCoreService extends BaseLog {
   }
 
   @Start()
-  async start(@Ctx() ctx: Context): Promise<void> {
+  async start(
+    @Ctx() ctx: Context & { message: Message.TextMessage },
+  ): Promise<void> {
+    await this.getBotInfoChat();
+    const user: IUserTelegram = this.getUserChat(ctx.message);
+    const bot: IBotTelegram = await this.getBotInfoChat();
     await ctx.reply(
-      `Xin chào ${ctx.from?.username} nhé.Tôi là bot chat. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
+      `Xin chào ${user.first_name} ${user.last_name} nhé.🎊
+      Tôi là ${bot.first_name} 🤖. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
     );
+    await this.updateUserAgent(user);
+    await this.updateAIMLKey(user);
   }
 
   @Help()
@@ -205,11 +214,7 @@ export class TelCoreService extends BaseLog {
   async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
     const text = ctx.message?.text || '';
     const raiseHand = text.startsWith(`${this.ICON_QS}`);
-    const user: IUserTelegram = {
-      first_name: ctx.from?.first_name ?? '',
-      id: ctx.from?.id ?? 0,
-      username: ctx.from?.username ?? '',
-    };
+    const user: IUserTelegram = this.getUserChat(ctx.message);
     const userAgent = await this.storageService.getUserAgent(user);
     if (!userAgent)
       await ctx.reply(
@@ -303,10 +308,10 @@ export class TelCoreService extends BaseLog {
       await this.storageService.removeAllKeyInQueue(REDIS_QUEUE_NAME.ACTIVE);
     }
     const apiKeys: IDataKey[] = keys.split(',').map((key) => {
-      const timestame = Date.now();
+      const timestamp = Date.now();
       const item: IDataKey = {
         codeStatus: 200,
-        startTime: timestame,
+        startTime: timestamp,
         value: key,
       };
       return item;
@@ -386,7 +391,7 @@ export class TelCoreService extends BaseLog {
     const { user, suffix, action } = payload;
     switch (action) {
       case ActionKeyCommand.Add:
-        await this.updateUserAgent(user);
+        await this.updateUserAgent(user, true);
         break;
       case ActionKeyCommand.Remove:
         // await this.removeUserAgent(user, timestamp);
@@ -397,8 +402,63 @@ export class TelCoreService extends BaseLog {
     return `Đã ${action} ${suffix} cho ${user.username}`;
   }
 
-  private async updateUserAgent(user: IUserTelegram) {
+  private async updateUserAgent(user: IUserTelegram, force = false) {
     const userAgent = randUserAgent('desktop', 'chrome', 'linux');
+    if (force) {
+      await this.storageService.setUserAgent(user, userAgent);
+      return true;
+    }
+    const userAgentCaching = await this.storageService.getUserAgent(user);
+    if (userAgentCaching) {
+      return true;
+    }
     await this.storageService.setUserAgent(user, userAgent);
+  }
+
+  private getUserChat(message: Message.TextMessage) {
+    const fromChat = message.from;
+    if (!fromChat) {
+      throw new Error('Không tìm thấy người dùng');
+    }
+    const user: IUserTelegram = {
+      id: fromChat.id || 0,
+      username: fromChat.username || '',
+      first_name: fromChat.first_name || '',
+      last_name: fromChat.last_name || '',
+    };
+    return user;
+  }
+
+  private async getBotInfoChat() {
+    const botInfo = await this.botTel.telegram.getMe();
+    if (!botInfo) {
+      throw new Error('Failed to get bot info');
+    }
+    const botChat: IBotTelegram = {
+      first_name: botInfo.first_name || '',
+      id: botInfo.id || 0,
+      last_name: botInfo.last_name || '',
+      username: botInfo.username || '',
+    };
+    return botChat;
+  }
+
+  private async updateAIMLKey(user: IUserTelegram) {
+    let apiKey = await this.storageService.getKeyAIML(user);
+    if (!apiKey) {
+      const data = await this.storageService.popFromQueue<IDataKey>(
+        REDIS_QUEUE_NAME.ACTIVE,
+      );
+      apiKey = data?.value ?? '';
+      if (!apiKey) {
+        return '';
+      }
+      await this.storageService.setKeyAIML(user, apiKey.trim());
+    }
+    return apiKey.trim();
+  }
+
+  private async updateAIModel(user: IUserTelegram) {
+
   }
 }
