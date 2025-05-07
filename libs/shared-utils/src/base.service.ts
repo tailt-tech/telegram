@@ -14,7 +14,6 @@ import {
 import { AxiosError } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { ProxyService } from '@app/shared-utils/proxy.service';
-import { IUserTelegram } from '@app/tel-core';
 
 @Injectable()
 export class BaseService extends BaseLog {
@@ -61,6 +60,15 @@ export class BaseService extends BaseLog {
     );
   }
 
+  private async postExternalUser<T>(): Promise<ResponseBase<T>> {
+    const resp: ResponseBase<T> = {
+      statusCode: 200,
+      data: null,
+      msg: 'Success',
+    };
+
+    return resp;
+  }
   async postExternalData<T>(
     url: string,
     body: unknown,

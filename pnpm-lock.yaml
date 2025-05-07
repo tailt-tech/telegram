@@ -31,6 +31,9 @@ importers:
       '@nestjs/platform-express':
         specifier: ^11.0.20
         version: 11.0.20(@nestjs/common@11.0.20(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.0.20)
+      '@rahulxf/random-user-agent':
+        specifier: ^1.4.0
+        version: 1.4.0
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -58,9 +61,6 @@ importers:
       punycode:
         specifier: ^2.3.1
         version: 2.3.1
-      rand-user-agent:
-        specifier: ^2.0.84
-        version: 2.0.84
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -73,6 +73,9 @@ importers:
       telegraf:
         specifier: ^4.16.3
         version: 4.16.3
+      user-agents:
+        specifier: ^1.1.531
+        version: 1.1.531
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.1
@@ -869,6 +872,9 @@ packages:
   '@pkgr/core@0.2.4':
     resolution: {integrity: sha512-ROFF39F6ZrnzSUEmQQZUar0Jt4xVoP9WnDRdWwF4NNcXs3xBTLgBUDoOwW141y1jP+S8nahIbdxbFC7IShw9Iw==}
     engines: {node: ^12.20.0 || ^14.18.0 || >=16.0.0}
+
+  '@rahulxf/random-user-agent@1.4.0':
+    resolution: {integrity: sha512-S1r3sCYW6WnTvjeINzMBN98IkOE5HFuYcF9dtzcIdEDEhQmtZ7mT4D0LYBXrnfeI/RMXh68BIC3noArGAxQJiQ==}
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -2544,6 +2550,9 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
+  lodash.clonedeep@4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
+
   lodash.defaults@4.2.0:
     resolution: {integrity: sha512-qjxPLHd3r5DnsdGacqOMU6pb/avJzdh9tFX2ymgoZE27BmjXrNy/y4LoaiTeAb+O3gL8AfpJGtqfX/ae2leYYQ==}
 
@@ -2974,10 +2983,6 @@ packages:
   quick-lru@5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
-
-  rand-user-agent@2.0.84:
-    resolution: {integrity: sha512-y5SAVxFv1qIOrnEyprG3sasPKDvBILVPUgo6jimnLvYmgLcdIKKikWproVUOZ82wRm31OJFXn6nyUcifHbl+gQ==}
-    engines: {node: '>=14.16'}
 
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
@@ -3519,6 +3524,9 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  user-agents@1.1.531:
+    resolution: {integrity: sha512-m0oo4DfzWo069n1LBx4WTdSEYF3Mo8VsnFVTmBsT689DoevOJoINZvM4FQv2N8Qu3qj8JaQcJztw85pxyoUu/A==}
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -4496,6 +4504,8 @@ snapshots:
     optional: true
 
   '@pkgr/core@0.2.4': {}
+
+  '@rahulxf/random-user-agent@1.4.0': {}
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -6462,6 +6472,8 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
+  lodash.clonedeep@4.5.0: {}
+
   lodash.defaults@4.2.0: {}
 
   lodash.isarguments@3.1.0: {}
@@ -6815,8 +6827,6 @@ snapshots:
   queue-microtask@1.2.3: {}
 
   quick-lru@5.1.1: {}
-
-  rand-user-agent@2.0.84: {}
 
   randombytes@2.1.0:
     dependencies:
@@ -7384,6 +7394,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  user-agents@1.1.531:
+    dependencies:
+      lodash.clonedeep: 4.5.0
 
   util-deprecate@1.0.2: {}
 

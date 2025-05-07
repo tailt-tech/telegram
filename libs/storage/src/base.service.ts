@@ -1,15 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import {
-  IDataKey,
+  IDataKey, REDIS_QUEUE_NAME,
   REDIS_QUEUE_TYPE,
   ResponseRedis,
 } from '@app/storage/storage.interface';
 
 @Injectable()
 export class BaseService {
-  constructor(@Inject('REDIS_CACHING') private readonly redisCaching: Redis) {
-  }
+  constructor(@Inject('REDIS_CACHING') private readonly redisCaching: Redis) {}
 
   async setCachingHash(key: string, hash: { key: string; value: string }) {
     try {
@@ -93,7 +92,7 @@ export class BaseService {
           success: false,
           message: `Expected a string value from JSON.SET, got ${typeof result} instead`,
         };
-      const data = JSON.parse(result) as Record<string, any>;
+      const data = JSON.parse(result) as Record<string, any> | string;
       return {
         success: true,
         message: '',
@@ -144,5 +143,14 @@ export class BaseService {
 
   async getAllKeysInQueue(queueName: REDIS_QUEUE_TYPE) {
     return this.redisCaching.lrange(queueName, 0, -1);
+  }
+
+  async blockApiKey(apiKey: string, code: number = 403) {
+    const apiKeyLock: IDataKey = {
+      startTime: Date.now(),
+      codeStatus: code,
+      value: apiKey,
+    };
+    await this.pushToQueue(REDIS_QUEUE_NAME.INACTIVE, apiKeyLock);
   }
 }

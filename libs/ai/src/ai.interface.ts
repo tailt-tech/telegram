@@ -1,12 +1,3 @@
-export enum AIMode {
-  gpt4oMini = 'gpt-4o-mini',
-  gpt4oMini20240718 = 'gpt-4o-mini-2024-07-18',
-  gpt41 = 'gpt-4.1-nano-2025-04-14',
-  IMAGE = 'image',
-  CODE = 'code',
-  DEFAULT = 'default',
-}
-
 export enum AIModelName {
   gpt4oMini = 'gpt-4o-mini',
   gpt4oLatest = 'chatgpt-4o-latest',
@@ -16,7 +7,7 @@ export enum AIModelName {
   DEFAULT = 'default',
 }
 
-export type AIModeType = (typeof AIMode)[keyof typeof AIMode];
+export type AIModeType = (typeof AIModelName)[keyof typeof AIModelName];
 
 export enum Role {
   user = 'user',

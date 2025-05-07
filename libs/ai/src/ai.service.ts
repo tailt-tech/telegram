@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '@app/storage';
-import { TopicCommand, TYPE_TOPIC } from '@app/tel-core';
+import { IUserTelegram, TopicCommand, TYPE_TOPIC } from '@app/tel-core';
 
 @Injectable()
 export class AIService extends BaseService {
@@ -73,6 +73,10 @@ export class AIService extends BaseService {
     }
   }
 
+  public async askAIML(user: IUserTelegram, message: string) {
+    if (!message.trim().length) return 'Please enter a message.';
+
+  }
   public async askTopic(
     message: string,
     systemDescription: string,

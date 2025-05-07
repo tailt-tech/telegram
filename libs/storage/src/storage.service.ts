@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseService } from '@app/storage/base.service';
 import {
   AIML_KEY,
+  AIML_MODEL,
   ASK_ACTIVE,
   IDataActive,
   IDataKey,
@@ -12,6 +13,7 @@ import {
   USER_AGENT,
 } from '@app/storage/storage.interface';
 import { IUserTelegram } from '@app/tel-core';
+import { AIModeType } from '@app/ai';
 
 @Injectable()
 export class StorageService extends BaseService {
@@ -54,7 +56,7 @@ export class StorageService extends BaseService {
   async getUserAgent(user: IUserTelegram): Promise<string> {
     const result = await this.jsonGet(user.id.toString(), USER_AGENT);
     if (result?.success) {
-      return result.data?.userAgent.toString() ?? '';
+      return typeof result.data === 'object' ? result.data.userAgent : '';
     } else {
       return '';
     }
@@ -67,10 +69,11 @@ export class StorageService extends BaseService {
   async setKeyAIML(user: IUserTelegram, key: string) {
     return this.jsonSet(user.id.toString(), AIML_KEY, key);
   }
+
   async getKeyAIML(user: IUserTelegram) {
     const result = await this.jsonGet(user.id.toString(), AIML_KEY);
     if (result?.success) {
-      return result.data?.aimlKey.toString() ?? '';
+      return typeof result.data === 'string' ? result.data : '';
     } else {
       return '';
     }
@@ -82,12 +85,46 @@ export class StorageService extends BaseService {
     force: boolean = false,
   ) {
     if (force) {
+      const keyAIMLOld = await this.getKeyAIML(user);
+      if (keyAIMLOld) {
+        await this.blockApiKey(keyAIMLOld);
+      }
       await this.setKeyAIML(user, key);
       return true;
     }
     const keyAIML = await this.getKeyAIML(user);
     if (!keyAIML) {
       await this.setKeyAIML(user, key);
+      return true;
+    }
+    return false;
+  }
+
+  async setModelActive(user: IUserTelegram, modelName: AIModeType) {
+    return this.jsonSet(user.id.toString(), AIML_MODEL, modelName);
+  }
+
+  async getModelActive(user: IUserTelegram) {
+    const result = await this.jsonGet(user.id.toString(), AIML_MODEL);
+    if (result?.success) {
+      return typeof result.data === 'string' ? result.data : '';
+    } else {
+      return '';
+    }
+  }
+
+  async updateModelActive(
+    user: IUserTelegram,
+    modelName: AIModeType,
+    force: boolean = false,
+  ) {
+    if (force) {
+      await this.setModelActive(user, modelName);
+      return true;
+    }
+    const modelActive = await this.getModelActive(user);
+    if (!modelActive) {
+      await this.setModelActive(user, modelName);
       return true;
     }
     return false;

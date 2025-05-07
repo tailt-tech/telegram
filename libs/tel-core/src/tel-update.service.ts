@@ -1,5 +1,5 @@
 import { BaseLog } from '@app/shared-utils';
-import { AIMode, AIModeType, AIService } from '@app/ai';
+import { AIModelName, AIModeType, AIService } from '@app/ai';
 import { Injectable } from '@nestjs/common';
 import {
   CallbackData,
@@ -17,7 +17,7 @@ export class TelUpdateService extends BaseLog {
   }
 
   public handleMessage(message: string, userAgent: string): Promise<string> {
-    return this.aiService.chat(message, AIMode.gpt4oMini20240718, userAgent);
+    return this.aiService.chat(message, AIModelName.gpt4oMini, userAgent);
   }
 
   public async getAPIKeyAI() {
@@ -28,7 +28,7 @@ export class TelUpdateService extends BaseLog {
     message: string,
     sysDescription: string,
     userAgent: string,
-    model: AIModeType = AIMode.gpt4oMini20240718,
+    model: AIModeType = AIModelName.gpt4oMini,
   ) {
     return await this.aiService.askTopic(
       message,

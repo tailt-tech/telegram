@@ -12,7 +12,6 @@ import pRetry from 'p-retry';
 import { TelUpdateService } from '@app/tel-core/tel-update.service';
 import { BaseLog } from '@app/shared-utils';
 import { Message } from 'telegraf/typings/core/types/typegram';
-import randUserAgent from 'rand-user-agent';
 import {
   IDataActive,
   IDataKey,
@@ -44,6 +43,8 @@ import {
   TYPE_MENU,
   TYPE_TOPIC,
 } from '@app/tel-core/tel-core.interface';
+import { getUserAgent } from '@rahulxf/random-user-agent/dist/generateUserAgents';
+import { AIModelName, AIModeType } from '@app/ai';
 
 @Update()
 export class TelCoreService extends BaseLog {
@@ -73,6 +74,7 @@ export class TelCoreService extends BaseLog {
     );
     await this.updateUserAgent(user);
     await this.updateAIMLKey(user);
+    await this.updateAIModel(user);
   }
 
   @Help()
@@ -257,7 +259,7 @@ export class TelCoreService extends BaseLog {
     if (!userId) return '';
     const topicActive = await this.storageService.getTopicActive(userId);
     if (!topicActive.success) return '';
-    return topicActive?.data?.value ?? '';
+    return typeof topicActive.data === 'object' ? topicActive.data.value : '';
   }
 
   private async getKeysActive(): Promise<string> {
@@ -403,7 +405,10 @@ export class TelCoreService extends BaseLog {
   }
 
   private async updateUserAgent(user: IUserTelegram, force = false) {
-    const userAgent = randUserAgent('desktop', 'chrome', 'linux');
+    const userAgent = getUserAgent() ?? '';
+    if (!userAgent) {
+      throw new Error('Không tìm thấy userAgent');
+    }
     if (force) {
       await this.storageService.setUserAgent(user, userAgent);
       return true;
@@ -459,6 +464,7 @@ export class TelCoreService extends BaseLog {
   }
 
   private async updateAIModel(user: IUserTelegram) {
-
+    const modelInit: AIModeType = AIModelName.gpt4oMini;
+    await this.storageService.updateModelActive(user, modelInit);
   }
 }
