@@ -11,6 +11,7 @@ import {
   REDIS_QUEUE_NAME,
   REDIS_QUEUE_TYPE,
   SYS_DES_CACHING,
+  TOPIC_ACTIVE,
   USER_AGENT,
 } from '@app/storage/storage.interface';
 import { IUserTelegram } from '@app/tel-core';
@@ -44,6 +45,26 @@ export class StorageService extends BaseService {
     };
     if (!key) await this.pushToQueue(REDIS_QUEUE_NAME.ACTIVE, data, false);
     await this.delCaching(nameCaching);
+  }
+
+  async setTopicUserActive(user: IUserTelegram, topicName: string) {
+    return this.jsonSet(user.id.toString(), TOPIC_ACTIVE, topicName);
+  }
+
+  async getTopicUserActive(user: IUserTelegram): Promise<string> {
+    const result = await this.jsonGet(user.id.toString(), TOPIC_ACTIVE);
+    if (result?.success) {
+      return typeof result.data === 'string' ? result.data : '';
+    }
+    return '';
+  }
+
+  async pushTopicUser(user: IUserTelegram, topic: string) {
+    return this.jsonTopicSet(user.id.toString(), topic);
+  }
+
+  async dropTopicUser(user: IUserTelegram, topic: string) {
+    return this.jsonTopicDel(user.id.toString(), topic);
   }
 
   async setTopicActive(userId: number, payload: IDataActive) {
@@ -130,6 +151,7 @@ export class StorageService extends BaseService {
     }
     return false;
   }
+
   async chatCaching(user: IUserTelegram, msg: string) {
     const content: IContentCaching = {
       content: {
@@ -140,5 +162,9 @@ export class StorageService extends BaseService {
       type: 'text',
     };
     return this.jsonSessionSet(user.id.toString(), `general`, content, 5);
+  }
+
+  async getTopics(user: IUserTelegram) {
+    return this.jsonTopicGet(user.id.toString());
   }
 }

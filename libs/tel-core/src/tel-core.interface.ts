@@ -249,6 +249,8 @@ type TYPE_CACHING = 'Agent' | 'Key' | 'Model';
 export const regexCallData = /^(\d{13})_(YES|NO)_(.*)$/i;
 export const regexCallDataKey = /^(\d{13})_(KEY)_(.*)$/i;
 export const regexCallDataAgent = /^(\d{13})_(Agent)_(.*)$/i;
+export const regexTopic = /^#(\w+)$/i;
+export const regexTopicRemove = /^#(\w+)(-)$/i;
 export const regexQuestion = /^(\(🙋️️)(.*)$/i;
 export const decodeCallbackData = (data: string): CallbackData | null => {
   const match = data.match(regexCallData);

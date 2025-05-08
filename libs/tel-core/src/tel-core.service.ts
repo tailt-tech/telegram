@@ -1,6 +1,7 @@
 import {
   Action,
   Ctx,
+  Hears,
   Help,
   InjectBot,
   On,
@@ -37,6 +38,8 @@ import {
   regexCallData,
   regexCallDataAgent,
   regexCallDataKey,
+  regexTopic,
+  regexTopicRemove,
   ReplyUser,
   ReplyUserKey,
   TopicCommand,
@@ -75,6 +78,7 @@ export class TelCoreService extends BaseLog {
     await this.updateUserAgent(user);
     await this.updateAIMLKey(user);
     await this.updateAIModel(user);
+    await this.storageService.setTopicUserActive(user, 'general');
   }
 
   @Help()
@@ -212,10 +216,50 @@ export class TelCoreService extends BaseLog {
     }
   }
 
+  @Hears('/topic')
+  async onTopicCMD(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const user: IUserTelegram = this.getUserChat(ctx.message);
+    await this.listTopic(user, ctx);
+    await ctx.reply(
+      `👨‍💻 ${user.username} want to create a topic then let start with the first word （例えば： #tech)`,
+    );
+    await ctx.reply(
+      `👨‍${user.username} want to remove a topic then let start with the first word and end word by -（例えば： #tech-)`,
+    );
+  }
+
+  @Hears(regexTopicRemove)
+  async oneTopicRemove(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const text = ctx.message?.text || '';
+    const match = text.match(regexTopicRemove);
+    console.log(match);
+    if (!match) {
+      await ctx.reply(`Không tìm thấy lệnh này`);
+      return;
+    }
+    const user: IUserTelegram = this.getUserChat(ctx.message);
+    const topicName = match[1];
+    await this.storageService.dropTopicUser(user, topicName);
+    await ctx.reply(`User ${user.first_name} đã remove chủ đề ${topicName}`);
+  }
+
+  @Hears(regexTopic)
+  async onTopicCreate(@Ctx() ctx: Context & { message: Message.TextMessage }) {
+    const text = ctx.message?.text || '';
+    const match = text.match(regexTopic);
+    if (!match) {
+      await ctx.reply(`Không tìm thấy lệnh này`);
+      return;
+    }
+    const topicName = match[1];
+    const user: IUserTelegram = this.getUserChat(ctx.message);
+    await this.storageService.pushTopicUser(user, topicName);
+    await this.storageService.setTopicUserActive(user, topicName);
+    await ctx.reply(`User ${user.first_name} đã chọn chủ đề ${topicName}`);
+  }
+
   @On('text')
   async onChatGroup(@Ctx() ctx: Context & { message: Message.TextMessage }) {
-    const text = ctx.message?.text || '';
-    const raiseHand = text.startsWith(`${this.ICON_QS}`);
     const user: IUserTelegram = this.getUserChat(ctx.message);
     const userAgent = await this.storageService.getUserAgent(user);
     if (!userAgent)
@@ -223,7 +267,11 @@ export class TelCoreService extends BaseLog {
         `Bạn chưa có user agent. Vui lòng chọn user agent để bắt đầu hỏi đáp.`,
       );
     else {
+      const topicActive = await this.storageService.getTopicUserActive(user);
+      await this.storageService.jsonSessionGet(user.id.toString(), topicActive);
       await this.storageService.chatCaching(user, ctx.message?.text);
+      // const text = ctx.message?.text || '';
+      // const raiseHand = text.startsWith(`${this.ICON_QS}`);
       // if (!raiseHand) {
       //   const reply = await this.telUpdateService.handleMessage(
       //     ctx.message?.text,
@@ -467,5 +515,14 @@ export class TelCoreService extends BaseLog {
   private async updateAIModel(user: IUserTelegram) {
     const modelInit: AIModeType = AIModelName.gpt4oMini;
     await this.storageService.updateModelActive(user, modelInit);
+  }
+
+  private async listTopic(user: IUserTelegram, ctx: Context) {
+    const result = await this.storageService.getTopics(user);
+    if (result.success) {
+      const payload = typeof result.data === 'string' ? result.data : '';
+      await ctx.reply(result.message);
+      await ctx.reply(payload);
+    } else await ctx.reply('Không có chủ đề nào được tạo');
   }
 }

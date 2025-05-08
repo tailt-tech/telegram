@@ -21,24 +21,62 @@ export class BaseService {
     }
   }
 
-  async getCachingHash(key: string, hashKey: string) {
-    return this.redisCaching.hget(key, hashKey);
-  }
-
-  async setCachingHashJson(
-    key: string,
-    hash: Record<string, string>,
-  ): Promise<ResponseRedis> {
+  async jsonTopicGet(keyRoot: string): Promise<ResponseRedis> {
     try {
-      await this.redisCaching.hmset(key, hash);
-      return { success: true, message: `Hash set for key ${key}` };
+      const key = `user_topics:${keyRoot}`;
+      const topicCaching = await this.redisCaching.zrange(key, 0, -1);
+      if (topicCaching.length) {
+        return {
+          success: true,
+          message: 'Đây là topic đã tạo',
+          data: topicCaching.join(', '),
+        };
+      } else
+        return {
+          success: false,
+          message: 'Không có topic được tạo',
+          data: '',
+        };
     } catch (error) {
-      throw new Error(`Failed to set hash in Redis: ${error}`);
+      console.error(error);
+      return {
+        success: false,
+        message: 'Không thể lấy dữ liệu từ Redis',
+      };
     }
   }
 
-  async getCachingHashJson(key: string): Promise<Record<string, string>> {
-    return this.redisCaching.hgetall(key);
+  async jsonTopicSet(keyRoot: string, value: string): Promise<ResponseRedis> {
+    try {
+      const key = `user_topics:${keyRoot}`;
+      const score = Date.now();
+      await this.redisCaching.zadd(key, 'NX', score, value);
+      return {
+        message: 'JSON data set successfully',
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to set JSON data: ${error}`,
+      };
+    }
+  }
+
+  async jsonTopicDel(keyRoot: string, value: string): Promise<ResponseRedis> {
+    try {
+      const key = `user_topics:${keyRoot}`;
+      await this.redisCaching.zrem(key, value);
+      return {
+        message: 'JSON data set successfully',
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to set JSON data: ${error}`,
+      };
+    }
   }
 
   async jsonSessionSet(
@@ -75,6 +113,50 @@ export class BaseService {
       return {
         success: false,
         message: `Failed to set JSON data: ${error}`,
+      };
+    }
+  }
+
+  async jsonSessionGet(
+    keyRoot: string,
+    topicName: string,
+  ): Promise<ResponseRedis> {
+    try {
+      const normalizedPath = topicName.replace(/^\.\//, '.');
+      const keyPattern = `history:${keyRoot}:${normalizedPath}:*`;
+      const [keys] = await Promise.all([this.redisCaching.keys(keyPattern)]);
+      if (!keys.length)
+        return {
+          success: false,
+          message: 'Không tìm thấy session',
+        };
+      const messages: IContentCaching[] = await Promise.all(
+        keys.map(async (key) => {
+          const raw = await this.redisCaching.call('JSON.GET', key);
+          return typeof raw === 'string'
+            ? (JSON.parse(raw) as IContentCaching)
+            : null;
+        }),
+      );
+      if (!messages || !messages.length)
+        return {
+          success: true,
+          message: 'Đây là session đã tạo',
+          data: '',
+        };
+      const text = messages
+        .filter((message) => message !== null)
+        .map((message) => message.content)
+        .join('\n');
+
+      return {
+        message: 'JSON data set successfully',
+        success: true,
+      };
+    } catch (e) {
+      return {
+        success: false,
+        message: `Not found session with topic name ${topicName}`,
       };
     }
   }

@@ -9,6 +9,7 @@ export const ASK_ACTIVE = 'askActive';
 export const USER_AGENT = 'userAgent';
 export const AIML_KEY = 'aimlKey';
 export const AIML_MODEL = 'aimlModel';
+export const TOPIC_ACTIVE = 'topicActive';
 export type REDIS_QUEUE_TYPE =
   (typeof REDIS_QUEUE_NAME)[keyof typeof REDIS_QUEUE_NAME];
 
