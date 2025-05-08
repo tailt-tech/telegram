@@ -4,6 +4,7 @@ import {
   AIML_KEY,
   AIML_MODEL,
   ASK_ACTIVE,
+  IContentCaching,
   IDataActive,
   IDataKey,
   KEY_CACHING,
@@ -128,5 +129,16 @@ export class StorageService extends BaseService {
       return true;
     }
     return false;
+  }
+  async chatCaching(user: IUserTelegram, msg: string) {
+    const content: IContentCaching = {
+      content: {
+        text: msg,
+      },
+      topic: 'other',
+      timestamp: Date.now(),
+      type: 'text',
+    };
+    return this.jsonSessionSet(user.id.toString(), `general`, content, 5);
   }
 }

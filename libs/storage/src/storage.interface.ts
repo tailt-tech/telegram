@@ -28,3 +28,18 @@ export interface ResponseRedis<T = Record<string, string> | string> {
   message: string;
   data?: T;
 }
+type TypeMsg = 'text' | 'image' | 'audio' | 'video' | 'file';
+type TypeTopic = 'language' | 'coding' | 'accountant' | 'other' | 'draw';
+interface IContent {
+  text?: string;
+  image?: string;
+  audio?: string;
+  video?: string;
+  file?: string;
+}
+export interface IContentCaching {
+  type: TypeMsg;
+  content: IContent;
+  topic: TypeTopic;
+  timestamp: number;
+}

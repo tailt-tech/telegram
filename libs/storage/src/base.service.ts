@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import {
-  IDataKey, REDIS_QUEUE_NAME,
+  IContentCaching,
+  IDataKey,
+  REDIS_QUEUE_NAME,
   REDIS_QUEUE_TYPE,
   ResponseRedis,
 } from '@app/storage/storage.interface';
@@ -37,6 +39,44 @@ export class BaseService {
 
   async getCachingHashJson(key: string): Promise<Record<string, string>> {
     return this.redisCaching.hgetall(key);
+  }
+
+  async jsonSessionSet(
+    keyRoot: string,
+    topicName: string,
+    value: IContentCaching,
+    maxLength: number = 100,
+  ): Promise<ResponseRedis> {
+    try {
+      const normalizedPath = topicName.replace(/^\.\//, '.');
+      const key = `history:${keyRoot}:${normalizedPath}:${value.timestamp}`;
+      const keyPattern = `history:${keyRoot}:${normalizedPath}:*`;
+      if (normalizedPath !== '.') {
+        const exists = await this.redisCaching.exists(key);
+        if (!exists) {
+          await this.redisCaching.call('JSON.SET', key, '.', '{}');
+        }
+      }
+      await this.redisCaching.call('JSON.SET', key, '.', JSON.stringify(value));
+      await this.redisCaching.expire(key, 3600);
+      const keys = await this.redisCaching.keys(keyPattern);
+      const length = keys.length;
+      if (length > maxLength) {
+        const keysToRemove = keys.slice(0, length - maxLength);
+        if (keysToRemove.length > 0) {
+          await this.redisCaching.del(keysToRemove);
+        }
+      }
+      return {
+        message: 'JSON data set successfully',
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to set JSON data: ${error}`,
+      };
+    }
   }
 
   /*Redis Json Methods*/

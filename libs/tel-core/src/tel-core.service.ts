@@ -223,15 +223,16 @@ export class TelCoreService extends BaseLog {
         `Bạn chưa có user agent. Vui lòng chọn user agent để bắt đầu hỏi đáp.`,
       );
     else {
-      if (!raiseHand) {
-        const reply = await this.telUpdateService.handleMessage(
-          ctx.message?.text,
-          userAgent,
-        );
-        await ctx.reply(reply);
-      } else {
-        await this.onQuestionTopic(ctx, userAgent);
-      }
+      await this.storageService.chatCaching(user, ctx.message?.text);
+      // if (!raiseHand) {
+      //   const reply = await this.telUpdateService.handleMessage(
+      //     ctx.message?.text,
+      //     userAgent,
+      //   );
+      //   await ctx.reply(reply);
+      // } else {
+      //   await this.onQuestionTopic(ctx, userAgent);
+      // }
     }
   }
 
