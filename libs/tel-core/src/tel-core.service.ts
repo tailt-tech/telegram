@@ -75,6 +75,7 @@ export class TelCoreService extends BaseLog {
       `Xin chào ${user.first_name} ${user.last_name} nhé.🎊
       Tôi là ${bot.first_name} 🤖. Bạn có thể gửi tin nhắn cho tôi để nhận câu trả lời.`,
     );
+    await ctx.reply('Ngoài ra, bạn có thể chọn các tùy chọn sau:', MENU_REPLY);
     await this.updateUserAgent(user);
     await this.updateAIMLKey(user);
     await this.updateAIModel(user);
@@ -268,9 +269,27 @@ export class TelCoreService extends BaseLog {
       );
     else {
       const topicActive = await this.storageService.getTopicUserActive(user);
-      await this.storageService.jsonSessionGet(user.id.toString(), topicActive);
-      await this.storageService.chatCaching(user, ctx.message?.text);
-      // const text = ctx.message?.text || '';
+      await this.storageService.chatCaching(
+        user,
+        ctx.message?.text,
+        topicActive,
+      );
+      const sessionHistories = await this.storageService.jsonSessionGet(
+        user.id.toString(),
+        topicActive,
+      );
+      let msgNew = ctx.message?.text;
+      if (sessionHistories.success) {
+        msgNew =
+          typeof sessionHistories.data === 'string'
+            ? sessionHistories.data + ', ' + msgNew
+            : '';
+      }
+      const reply = await this.telUpdateService.handleMessage(
+        msgNew,
+        userAgent,
+      );
+      await ctx.reply(reply);
       // const raiseHand = text.startsWith(`${this.ICON_QS}`);
       // if (!raiseHand) {
       //   const reply = await this.telUpdateService.handleMessage(

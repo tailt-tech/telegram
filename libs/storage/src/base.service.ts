@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import {
+  IContent,
   IContentCaching,
   IDataKey,
   REDIS_QUEUE_NAME,
@@ -130,7 +131,7 @@ export class BaseService {
           success: false,
           message: 'Không tìm thấy session',
         };
-      const messages: IContentCaching[] = await Promise.all(
+      const messages = await Promise.all(
         keys.map(async (key) => {
           const raw = await this.redisCaching.call('JSON.GET', key);
           return typeof raw === 'string'
@@ -144,14 +145,14 @@ export class BaseService {
           message: 'Đây là session đã tạo',
           data: '',
         };
-      const text = messages
+      const output = messages
         .filter((message) => message !== null)
-        .map((message) => message.content)
-        .join('\n');
-
+        .map((message) => (message.type === 'text' ? message.content.text : ''))
+        .join(', ');
       return {
         message: 'JSON data set successfully',
         success: true,
+        data: output,
       };
     } catch (e) {
       return {

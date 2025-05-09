@@ -30,8 +30,8 @@ export interface ResponseRedis<T = Record<string, string> | string> {
   data?: T;
 }
 type TypeMsg = 'text' | 'image' | 'audio' | 'video' | 'file';
-type TypeTopic = 'language' | 'coding' | 'accountant' | 'other' | 'draw';
-interface IContent {
+// type TypeTopic = 'language' | 'coding' | 'accountant' | 'other' | 'draw';
+export interface IContent {
   text?: string;
   image?: string;
   audio?: string;
@@ -41,6 +41,6 @@ interface IContent {
 export interface IContentCaching {
   type: TypeMsg;
   content: IContent;
-  topic: TypeTopic;
+  topic: string;
   timestamp: number;
 }

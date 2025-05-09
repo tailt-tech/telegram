@@ -58,6 +58,4 @@ export class TelUpdateService extends BaseLog {
         break;
     }
   }
-
-  public async summarySessionChat(chats: I)
 }

@@ -152,16 +152,16 @@ export class StorageService extends BaseService {
     return false;
   }
 
-  async chatCaching(user: IUserTelegram, msg: string) {
+  async chatCaching(user: IUserTelegram, msg: string, topicActive: string) {
     const content: IContentCaching = {
       content: {
         text: msg,
       },
-      topic: 'other',
+      topic: topicActive,
       timestamp: Date.now(),
       type: 'text',
     };
-    return this.jsonSessionSet(user.id.toString(), `general`, content, 5);
+    return this.jsonSessionSet(user.id.toString(), topicActive, content, 5);
   }
 
   async getTopics(user: IUserTelegram) {

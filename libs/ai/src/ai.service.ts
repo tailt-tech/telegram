@@ -49,6 +49,7 @@ export class AIService extends BaseService {
     mode: AIModeType,
     userAgent: string,
   ): Promise<string> {
+    this.logger.verbose(message);
     if (!message.trim().length) {
       return 'Please enter a message.';
     }
