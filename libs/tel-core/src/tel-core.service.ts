@@ -269,11 +269,6 @@ export class TelCoreService extends BaseLog {
       );
     else {
       const topicActive = await this.storageService.getTopicUserActive(user);
-      await this.storageService.chatCaching(
-        user,
-        ctx.message?.text,
-        topicActive,
-      );
       const sessionHistories = await this.storageService.jsonSessionGet(
         user.id.toString(),
         topicActive,
@@ -290,16 +285,11 @@ export class TelCoreService extends BaseLog {
         userAgent,
       );
       await ctx.reply(reply);
-      // const raiseHand = text.startsWith(`${this.ICON_QS}`);
-      // if (!raiseHand) {
-      //   const reply = await this.telUpdateService.handleMessage(
-      //     ctx.message?.text,
-      //     userAgent,
-      //   );
-      //   await ctx.reply(reply);
-      // } else {
-      //   await this.onQuestionTopic(ctx, userAgent);
-      // }
+      await this.storageService.chatCaching(
+        user,
+        ctx.message?.text,
+        topicActive,
+      );
     }
   }
 
